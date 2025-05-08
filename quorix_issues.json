@@ -1,0 +1,46 @@
+[
+    {
+    "title": "Init Framework",
+    "body": "Initialize folder and file structure"
+  },
+{
+    "title": "Implement Event Session Creation",
+    "body": "Allow organizers to create a session with a unique ID and associated metadata (title, start time, description, etc.).\n\n- [ ] API route to create a new session\n- [ ] Generate unique event/session ID\n- [ ] Store in database with metadata\n- [ ] Return session ID and QR code-ready link"
+  },
+  {
+    "title": "Implement QR Code-Based Event Access",
+    "body": "Generate a unique QR code when an event is created. Attendees scan this code to access the event-specific login or registration page.\n\n- [ ] Generate unique event code\n- [ ] Create QR code using event code in URL\n- [ ] Display QR in organizer dashboard\n- [ ] Create landing page for QR scans\n- [ ] Associate logged-in user with event context"
+  },
+  {
+    "title": "Build Attendee Question Submission Form",
+    "body": "Create a frontend form allowing authenticated attendees to submit questions linked to the active session.\n\n- [ ] Build question input form (text only for MVP)\n- [ ] Validate input and prevent empty submission\n- [ ] POST to backend with user ID and session ID\n- [ ] Show confirmation or error message"
+  },
+  {
+    "title": "Create Schema and API for Storing Questions",
+    "body": "Store each question with metadata including user ID, session ID, timestamp, and moderation status.\n\n- [ ] Create database model for questions\n- [ ] API to receive and store question submissions\n- [ ] Include “status” field (pending, approved, merged, deleted)"
+  },
+  {
+    "title": "Generate Representative Questions from Audience Submissions",
+    "body": "Use OpenAI API to periodically summarize top recurring or popular topics into 3–5 synthesized questions.\n\n- [ ] Collect all approved questions from a session\n- [ ] Group or cluster similar questions\n- [ ] Prompt OpenAI API to generate synthesized question list\n- [ ] Return to frontend for display"
+  },
+  {
+    "title": "Display Synthesized Questions in Real-Time",
+    "body": "Create a frontend view that refreshes automatically to show updated synthesized questions for moderators.\n\n- [ ] Poll or use WebSocket to get latest list\n- [ ] Display questions clearly with timestamps\n- [ ] Optional: show originating users’ initials"
+  },
+  {
+    "title": "Implement Login and Role Management",
+    "body": "Create a basic login system for attendees and moderators. Assign roles to determine view access.\n\n- [ ] Login with email + session code or SSO\n- [ ] Assign user roles (attendee, moderator, organizer)\n- [ ] Restrict moderator dashboard access to appropriate role"
+  },
+  {
+    "title": "Build Question Moderation Interface",
+    "body": "Create a dashboard for moderators to approve, delete, or merge questions before synthesis.\n\n- [ ] View all incoming questions\n- [ ] Approve, delete, or flag submissions\n- [ ] Trigger synthesis manually"
+  },
+  {
+    "title": "Prevent Abuse and Spam Submissions",
+    "body": "Add safeguards to ensure users don’t overwhelm the system or submit inappropriate content.\n\n- [ ] Add rate limiting by IP or user ID\n- [ ] Add basic profanity filter\n- [ ] Allow moderators to block users"
+  },
+  {
+    "title": "Deploy to Heroku/Render with Production Config",
+    "body": "Set up automated deployment to staging/production environment.\n\n- [ ] Dockerize app (optional)\n- [ ] Configure backend + frontend builds\n- [ ] Connect to cloud database\n- [ ] Monitor logs and errors"
+  }
+]
