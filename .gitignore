@@ -1,0 +1,27 @@
+# Node.js
+node_modules/
+build/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment Variables
+.env
+
+# Logs
+*.log
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Others
+*.bak
+*.tmp
