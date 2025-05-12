@@ -13,6 +13,9 @@ CORS(app, resources={r"/*": {"origins": "http://your-production-domain.com"}})
 # In-memory session storage for demo/testing
 sessions = {}
 
+# In-memory question storage
+questions = []
+
 @app.route('/create_session', methods=['POST'])
 def create_session():
     data = request.get_json()
@@ -56,6 +59,25 @@ def get_session(session_id):
     if not session:
         return jsonify({'error': 'Session not found'}), 404
     return jsonify(session)
+
+@app.route('/questions', methods=['POST'])
+def submit_question():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    session_id = data.get('session_id')
+    question_text = data.get('question')
+    if not user_id or not session_id or not question_text or not question_text.strip():
+        return jsonify({'error': 'Missing user, session, or question'}), 400
+    # Optionally: check if session exists
+    question_obj = {
+        'user_id': user_id,
+        'session_id': session_id,
+        'question': question_text.strip(),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'status': 'pending'
+    }
+    questions.append(question_obj)
+    return jsonify({'success': True}), 200
 
 @app.route('/api/ping')
 def ping():
