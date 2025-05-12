@@ -1,9 +1,11 @@
-from flask import Flask, jsonify, send_from_directory, request
+from flask import Flask, jsonify, send_from_directory, request, send_file
 from flask_cors import CORS
 import os
 import subprocess
 import uuid
 from datetime import datetime, timezone
+import qrcode
+import io
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
 CORS(app, resources={r"/*": {"origins": "http://your-production-domain.com"}})
@@ -37,6 +39,23 @@ def create_session():
         "session_id": session_id,
         "qr_link": qr_link
     }), 201
+
+@app.route('/session_qr/<session_id>')
+def session_qr(session_id):
+    # Generate QR code for the event/session URL
+    url = f"https://quorix.ai/session/{session_id}"
+    img = qrcode.make(url)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')
+
+@app.route('/api/session/<session_id>')
+def get_session(session_id):
+    session = sessions.get(session_id)
+    if not session:
+        return jsonify({'error': 'Session not found'}), 404
+    return jsonify(session)
 
 @app.route('/api/ping')
 def ping():
