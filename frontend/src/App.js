@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import EventLandingPage from './pages/EventLandingPage';
 import QRCodeImage from './components/QRCodeImage';
+import ModeratorDashboard from './pages/ModeratorDashboard';
 
 function App() {
   const [message, setMessage] = useState('');
@@ -34,6 +35,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/session/:eventCode" element={<EventLandingPage />} />
+        <Route path="/moderator/:sessionId" element={<ModeratorDashboardWrapper />} />
         <Route path="/" element={
           <div>
             <h1>React Frontend</h1>
@@ -50,6 +52,12 @@ function App() {
       </Routes>
     </Router>
   );
+}
+
+// Wrapper to extract sessionId from params for ModeratorDashboard
+function ModeratorDashboardWrapper() {
+  const { sessionId } = require('react-router-dom').useParams();
+  return <ModeratorDashboard sessionId={sessionId} />;
 }
 
 export default App;
