@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import qrcode
 import io
 from models.question import Question
+from utils.synthesis import get_synthesized_questions, background_summarization
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
 CORS(app, resources={r"/*": {"origins": "http://your-production-domain.com"}})
@@ -77,6 +78,20 @@ def submit_question():
     question_obj = Question(user_id=user_id, session_id=session_id, text=text.strip(), status=status)
     questions.append(question_obj.to_dict())
     return jsonify({'success': True}), 201
+
+@app.route('/synthesized_questions')
+def synthesized_questions():
+    session_id = request.args.get('session_id')
+    if not session_id:
+        return jsonify({'error': 'Missing session_id'}), 400
+    summary = get_synthesized_questions(session_id, questions)
+    return jsonify(summary), 200
+
+# Example endpoint to trigger background summarization (for testing/cron)
+@app.route('/trigger_summarization')
+def trigger_summarization():
+    background_summarization(questions)
+    return jsonify({'status': 'ok'}), 200
 
 @app.route('/api/ping')
 def ping():
