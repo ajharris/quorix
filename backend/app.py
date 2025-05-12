@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 import qrcode
 import io
+from models.question import Question
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
 CORS(app, resources={r"/*": {"origins": "http://your-production-domain.com"}})
@@ -63,21 +64,19 @@ def get_session(session_id):
 @app.route('/questions', methods=['POST'])
 def submit_question():
     data = request.get_json()
+    # Accepts: user_id, session_id, text, status (optional)
     user_id = data.get('user_id')
     session_id = data.get('session_id')
-    question_text = data.get('question')
-    if not user_id or not session_id or not question_text or not question_text.strip():
-        return jsonify({'error': 'Missing user, session, or question'}), 400
+    text = data.get('text') or data.get('question')
+    status = data.get('status', 'pending')
+    # Validate fields
+    errors = Question.validate({'user_id': user_id, 'session_id': session_id, 'text': text, 'status': status})
+    if errors:
+        return jsonify({'error': '; '.join(errors)}), 400
     # Optionally: check if session exists
-    question_obj = {
-        'user_id': user_id,
-        'session_id': session_id,
-        'question': question_text.strip(),
-        'timestamp': datetime.now(timezone.utc).isoformat(),
-        'status': 'pending'
-    }
-    questions.append(question_obj)
-    return jsonify({'success': True}), 200
+    question_obj = Question(user_id=user_id, session_id=session_id, text=text.strip(), status=status)
+    questions.append(question_obj.to_dict())
+    return jsonify({'success': True}), 201
 
 @app.route('/api/ping')
 def ping():
