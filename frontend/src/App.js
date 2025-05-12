@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import EventLandingPage from './pages/EventLandingPage';
+import QRCodeImage from './components/QRCodeImage';
 
 function App() {
   const [message, setMessage] = useState('');
+  const [session, setSession] = useState(null);
 
   useEffect(() => {
     fetch('/api/ping')
@@ -10,11 +14,41 @@ function App() {
       .catch(error => console.error('Error fetching data:', error));
   }, []);
 
+  // Demo: create a session on mount (for dashboard demo)
+  useEffect(() => {
+    fetch('/create_session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Demo Event',
+        start_time: new Date().toISOString(),
+        description: 'Demo event for QR code display.'
+      })
+    })
+      .then(res => res.json())
+      .then(data => setSession(data))
+      .catch(() => {});
+  }, []);
+
   return (
-    <div>
-      <h1>React Frontend</h1>
-      <p>Backend says: {message}</p>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/session/:eventCode" element={<EventLandingPage />} />
+        <Route path="/" element={
+          <div>
+            <h1>React Frontend</h1>
+            <p>Backend says: {message}</p>
+            {session && (
+              <div>
+                <h2>Organizer Dashboard</h2>
+                <p>Event: {session.session_id}</p>
+                <QRCodeImage sessionId={session.session_id} />
+              </div>
+            )}
+          </div>
+        } />
+      </Routes>
+    </Router>
   );
 }
 
