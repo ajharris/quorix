@@ -1,3 +1,5 @@
+import React from 'react';
+
 globalThis.fetch = jest.fn(() =>
   Promise.resolve({
     ok: true,
