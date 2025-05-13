@@ -1,101 +1,14 @@
-from flask import Flask, jsonify, send_from_directory, request, send_file
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 import os
 import subprocess
-import uuid
-from datetime import datetime, timezone
-import qrcode
-import io
-from models.question import Question
-from utils.synthesis import get_synthesized_questions, background_summarization
+from routes.api_routes import routes, sessions, questions
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
 CORS(app, resources={r"/*": {"origins": "http://your-production-domain.com"}})
 
-# In-memory session storage for demo/testing
-sessions = {}
-
-# In-memory question storage
-questions = []
-
-@app.route('/create_session', methods=['POST'])
-def create_session():
-    data = request.get_json()
-    # Validate required fields
-    title = data.get('title')
-    start_time = data.get('start_time')
-    description = data.get('description', '')
-    if not title or not start_time:
-        return jsonify({"error": "Missing required field: title and start_time are required."}), 400
-    # Generate unique session ID
-    while True:
-        session_id = str(uuid.uuid4())
-        if session_id not in sessions:
-            break
-    # Store session metadata
-    sessions[session_id] = {
-        "title": title,
-        "start_time": start_time,
-        "description": description,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    qr_link = f"https://quorix.ai/session/{session_id}"
-    return jsonify({
-        "session_id": session_id,
-        "qr_link": qr_link
-    }), 201
-
-@app.route('/session_qr/<session_id>')
-def session_qr(session_id):
-    # Generate QR code for the event/session URL
-    url = f"https://quorix.ai/session/{session_id}"
-    img = qrcode.make(url)
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    buf.seek(0)
-    return send_file(buf, mimetype='image/png')
-
-@app.route('/api/session/<session_id>')
-def get_session(session_id):
-    session = sessions.get(session_id)
-    if not session:
-        return jsonify({'error': 'Session not found'}), 404
-    return jsonify(session)
-
-@app.route('/questions', methods=['POST'])
-def submit_question():
-    data = request.get_json()
-    # Accepts: user_id, session_id, text, status (optional)
-    user_id = data.get('user_id')
-    session_id = data.get('session_id')
-    text = data.get('text') or data.get('question')
-    status = data.get('status', 'pending')
-    # Validate fields
-    errors = Question.validate({'user_id': user_id, 'session_id': session_id, 'text': text, 'status': status})
-    if errors:
-        return jsonify({'error': '; '.join(errors)}), 400
-    # Optionally: check if session exists
-    question_obj = Question(user_id=user_id, session_id=session_id, text=text.strip(), status=status)
-    questions.append(question_obj.to_dict())
-    return jsonify({'success': True}), 201
-
-@app.route('/synthesized_questions')
-def synthesized_questions():
-    session_id = request.args.get('session_id')
-    if not session_id:
-        return jsonify({'error': 'Missing session_id'}), 400
-    summary = get_synthesized_questions(session_id, questions)
-    return jsonify(summary), 200
-
-# Example endpoint to trigger background summarization (for testing/cron)
-@app.route('/trigger_summarization')
-def trigger_summarization():
-    background_summarization(questions)
-    return jsonify({'status': 'ok'}), 200
-
-@app.route('/api/ping')
-def ping():
-    return jsonify({"message": "Pong!"})
+# Register routes blueprint
+app.register_blueprint(routes)
 
 # Serve React's static files
 @app.route('/')

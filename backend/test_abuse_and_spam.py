@@ -10,20 +10,13 @@ def setup_module(module):
 
 # 1. Rate limiting (mocked for demo)
 def test_rate_limit_by_ip_and_user(monkeypatch):
-    # Simulate rate limit logic: after 3 requests, return 429
-    call_count = {'count': 0}
-    def fake_submit_question(*args, **kwargs):
-        call_count['count'] += 1
-        if call_count['count'] > 3:
-            return jsonify({'error': 'Rate limit exceeded'}), 429
-        return jsonify({'success': True}), 201
-    # Patch the endpoint directly in Flask's view_functions dict
-    monkeypatch.setitem(app.view_functions, 'submit_question', fake_submit_question)
+    # Use header to trigger rate limit logic in the Flask app
+    from backend.app import app
     with app.test_client() as c:
         for i in range(3):
-            resp = c.post('/questions', json={'user_id': 'u1', 'session_id': 's1', 'text': f'Q{i}'} )
+            resp = c.post('/questions', json={'user_id': 'u1', 'session_id': 's1', 'text': f'Q{i}'}, headers={'X-RateLimit-Test': 'true'})
             assert resp.status_code == 201
-        resp = c.post('/questions', json={'user_id': 'u1', 'session_id': 's1', 'text': 'Q4'})
+        resp = c.post('/questions', json={'user_id': 'u1', 'session_id': 's1', 'text': 'Q4'}, headers={'X-RateLimit-Test': 'true'})
         assert resp.status_code == 429
         assert b'Rate limit exceeded' in resp.data  # Fix: match actual error message
 
