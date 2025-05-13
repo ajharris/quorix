@@ -6,7 +6,8 @@ build/
 __pycache__/
 *.pyc
 *.pyo
-
+venv/
+.venv/
 # Environment Variables
 .env
 
@@ -25,3 +26,23 @@ Thumbs.db
 # Others
 *.bak
 *.tmp
+
+# Flask
+instance/
+*.db
+*.sqlite3
+*.sqlite
+.env.*
+# Flask cache and session
+flask_session/
+
+# React build output
+frontend/build/
+frontend/.env*
+frontend/coverage/
+frontend/.cache/
+
+# Test output
+coverage/
+htmlcov/
+.nyc_output/
