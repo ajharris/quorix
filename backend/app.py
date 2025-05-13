@@ -26,7 +26,7 @@ def serve_react(path=''):
 
 # Only build frontend if running as main app, not during import (e.g., for tests)
 if __name__ == '__main__':
-    FRONTEND_DIR = os.path.join(os.getcwd(), '..', 'frontend')  # adjust if needed
+    FRONTEND_DIR = os.path.join(os.getcwd(), 'frontend')  # fixed path
     print("Building React frontend...")
     subprocess.run(['npm', 'run', 'build'], cwd=FRONTEND_DIR)
 
