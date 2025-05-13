@@ -106,7 +106,7 @@ function QuestionList({ sessionId }) {
         <li key={q.id} role="listitem">
           <strong>{getInitials(q.user)}:</strong> {q.text}
           <br />
-          <small>{new Date(q.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</small>
+          <small>{new Date(q.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' })}</small>
         </li>
       ))}
     </ul>

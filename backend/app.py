@@ -14,7 +14,11 @@ app.register_blueprint(routes)
 @app.route('/')
 @app.route('/<path:path>')
 def serve_react(path=''):
+    index_path = os.path.join(app.static_folder, 'index.html')
     full_path = os.path.normpath(os.path.join(app.static_folder, path))
+    if not os.path.exists(index_path):
+        # Frontend build does not exist; return 404 or a simple message
+        return ("Frontend not built. Please run 'npm run build' in the frontend directory.", 404)
     if full_path.startswith(app.static_folder) and os.path.exists(full_path):
         return send_from_directory(app.static_folder, os.path.relpath(full_path, app.static_folder))
     else:
