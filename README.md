@@ -66,7 +66,7 @@ Contributions are welcome! Please open issues or submit pull requests for improv
 
 ## License
 
-MIT
+NONE
 
 ---
 
