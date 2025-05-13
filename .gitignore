@@ -6,6 +6,7 @@ build/
 __pycache__/
 *.pyc
 *.pyo
+venv/
 
 # Environment Variables
 .env
