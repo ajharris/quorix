@@ -3,10 +3,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import EventLandingPage from './pages/EventLandingPage';
 import QRCodeImage from './components/QRCodeImage';
 import ModeratorDashboard from './pages/ModeratorDashboard';
+import NavBar from './components/NavBar';
 
 function App() {
   const [message, setMessage] = useState('');
   const [session, setSession] = useState(null);
+  const [user, setUser] = useState(null); // Track logged-in user and role
 
   useEffect(() => {
     fetch('/api/ping')
@@ -31,8 +33,20 @@ function App() {
       .catch(() => {});
   }, []);
 
+  // Simulate login state (replace with real auth in production)
+  useEffect(() => {
+    // Example: fetch user info from backend or localStorage
+    // For now, hardcode as not logged in
+    setUser(null); // or setUser({ role: 'organizer', name: 'Alice' })
+  }, []);
+
+  // Add login/logout handlers
+  const handleLogin = (userObj) => setUser(userObj);
+  const handleLogout = () => setUser(null);
+
   return (
     <Router>
+      <NavBar user={user} onLogin={handleLogin} onLogout={handleLogout} />
       <Routes>
         <Route path="/session/:eventCode" element={<EventLandingPage />} />
         <Route path="/moderator/:sessionId" element={<ModeratorDashboardWrapper />} />
@@ -40,7 +54,8 @@ function App() {
           <div>
             <h1>React Frontend</h1>
             <p>Backend says: {message}</p>
-            {session && (
+            {/* Only show organizer dashboard if user is organizer */}
+            {user && user.role === 'organizer' && session && (
               <div>
                 <h2>Organizer Dashboard</h2>
                 <p>Event: {session.session_id}</p>

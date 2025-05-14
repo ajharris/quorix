@@ -112,6 +112,12 @@ def submit_question():
     status = data.get('status', 'pending')
     errors = Question.validate({'user_id': user_id, 'session_id': session_id, 'text': text, 'status': status})
     if errors:
+        # If the error is about a blocked user, return 403
+        if any('blocked' in e.lower() for e in errors):
+            return jsonify({'error': '; '.join(errors)}), 403
+        # If the error is about profanity, return 400
+        if any('profanity' in e.lower() for e in errors):
+            return jsonify({'error': '; '.join(errors)}), 400
         return jsonify({'error': '; '.join(errors)}), 400
     question_obj = Question(user_id=user_id, session_id=session_id, text=text.strip(), status=status)
     questions.append(question_obj.to_dict())
@@ -135,3 +141,16 @@ def trigger_summarization():
 @routes.route('/api/ping')
 def ping():
     return jsonify({"message": "Pong!"})
+
+@routes.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+    # For demo: just check if email already exists in sessions (not secure, just for demo)
+    if email in sessions:
+        return jsonify({'error': 'User already exists'}), 409
+    sessions[email] = {'email': email, 'password': password}
+    return jsonify({'success': True, 'message': 'User registered!'}), 201

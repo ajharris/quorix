@@ -1,11 +1,34 @@
 from flask import Flask, send_from_directory
-from flask_cors import CORS
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
 import os
 import subprocess
-from routes.api_routes import routes, sessions, questions
+from backend.routes.api_routes import routes, sessions, questions
+
+# Load .env from project root
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
-CORS(app, resources={r"/*": {"origins": "http://your-production-domain.com"}})
+
+# Use SQLALCHEMY_DATABASE_URI for Flask-SQLAlchemy compatibility
+# Accept both QUORIX_DATABASE_URI and SQLALCHEMY_DATABASE_URI for flexibility
+
+db_url = (
+    os.environ.get('SQLALCHEMY_DATABASE_URI') or
+    os.environ.get('QUORIX_DATABASE_URI') or
+    os.environ.get('DATABASE_URL')
+)
+if db_url and db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+if not db_url:
+    raise RuntimeError("You must set SQLALCHEMY_DATABASE_URI or QUORIX_DATABASE_URI or DATABASE_URL in your environment or .env file.")
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+
+print("Loaded SQLALCHEMY_DATABASE_URI:", app.config['SQLALCHEMY_DATABASE_URI'])
+
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # Register routes blueprint
 app.register_blueprint(routes)

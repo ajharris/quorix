@@ -32,6 +32,19 @@ afterEach(() => {
 describe('EventLandingPage', () => {
   function mockInitialFetches(questions = []) {
     global.fetch = jest.fn((url, options) => {
+      if (url === '/api/events') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            {
+              session_id: 'test-session-1',
+              title: 'Test Event',
+              start_time: '2025-05-12T14:00:00Z',
+              description: 'Test desc.'
+            }
+          ])
+        });
+      }
       if (url.startsWith('/api/session/')) {
         return Promise.resolve({
           ok: true,
@@ -58,10 +71,20 @@ describe('EventLandingPage', () => {
     });
   }
 
+  // Helper to select the event before making assertions
+  async function selectEvent() {
+    // Wait for the event list to load
+    const eventListItems = await screen.findAllByText('Test Event');
+    // Click the event in the event list (not the card title)
+    fireEvent.click(eventListItems.find(el => el.tagName === 'SPAN'));
+    // Wait for event details to render
+    await screen.findByRole('heading', { name: 'Test Event' });
+  }
+
   it('renders form for authenticated user', async () => {
     mockInitialFetches();
     render(<EventLandingPage />);
-    expect(await screen.findByText('Test Event')).toBeInTheDocument();
+    await selectEvent();
     expect(screen.getByLabelText(/ask a question/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /submit/i })).toBeEnabled();
   });
@@ -69,7 +92,7 @@ describe('EventLandingPage', () => {
   it('enables submit when textarea is not empty', async () => {
     mockInitialFetches();
     render(<EventLandingPage />);
-    await screen.findByText('Test Event');
+    await selectEvent();
     fireEvent.change(screen.getByLabelText(/ask a question/i), { target: { value: 'What is the agenda?' } });
     expect(screen.getByRole('button', { name: /submit/i })).toBeEnabled();
   });
@@ -77,7 +100,7 @@ describe('EventLandingPage', () => {
   it('shows error if submitted empty', async () => {
     mockInitialFetches();
     render(<EventLandingPage />);
-    await screen.findByText('Test Event');
+    await selectEvent();
     fireEvent.click(screen.getByRole('button', { name: /submit/i }));
     expect(await screen.findByText(/cannot be empty/i)).toBeInTheDocument();
   });
@@ -85,7 +108,7 @@ describe('EventLandingPage', () => {
   it('submits question and shows confirmation', async () => {
     mockInitialFetches();
     render(<EventLandingPage />);
-    await screen.findByText('Test Event');
+    await selectEvent();
     const textarea = screen.getByLabelText(/ask a question/i);
     fireEvent.change(textarea, { target: { value: 'What is the agenda?' } });
     fireEvent.click(screen.getByRole('button', { name: /submit/i }));
@@ -95,6 +118,19 @@ describe('EventLandingPage', () => {
 
   it('shows error on backend 400', async () => {
     global.fetch = jest.fn((url, options) => {
+      if (url === '/api/events') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            {
+              session_id: 'test-session-1',
+              title: 'Test Event',
+              start_time: '2025-05-12T14:00:00Z',
+              description: 'Test desc.'
+            }
+          ])
+        });
+      }
       if (url.startsWith('/api/session/')) {
         return Promise.resolve({
           ok: true,
@@ -121,7 +157,7 @@ describe('EventLandingPage', () => {
       return Promise.reject(new Error('Unknown endpoint'));
     });
     render(<EventLandingPage />);
-    await screen.findByText('Test Event');
+    await selectEvent();
     fireEvent.change(screen.getByLabelText(/ask a question/i), { target: { value: 'Bad input' } });
     fireEvent.click(screen.getByRole('button', { name: /submit/i }));
     expect(await screen.findByText(/missing fields/i)).toBeInTheDocument();
@@ -129,6 +165,19 @@ describe('EventLandingPage', () => {
 
   it('shows error on network failure', async () => {
     global.fetch = jest.fn((url, options) => {
+      if (url === '/api/events') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            {
+              session_id: 'test-session-1',
+              title: 'Test Event',
+              start_time: '2025-05-12T14:00:00Z',
+              description: 'Test desc.'
+            }
+          ])
+        });
+      }
       if (url.startsWith('/api/session/')) {
         return Promise.resolve({
           ok: true,
@@ -151,7 +200,7 @@ describe('EventLandingPage', () => {
       return Promise.reject(new Error('Unknown endpoint'));
     });
     render(<EventLandingPage />);
-    await screen.findByText('Test Event');
+    await selectEvent();
     fireEvent.change(screen.getByLabelText(/ask a question/i), { target: { value: 'Will there be food?' } });
     fireEvent.click(screen.getByRole('button', { name: /submit/i }));
     expect(await screen.findByText(/network error/i)).toBeInTheDocument();
@@ -163,6 +212,7 @@ describe('EventLandingPage', () => {
       { id: 2, text: 'Will there be food?', user: 'Jane Smith', timestamp: '2025-05-12T15:00:00Z' },
     ]);
     render(<EventLandingPage />);
+    await selectEvent();
     expect(await screen.findByText('What is the agenda?')).toBeInTheDocument();
     expect(await screen.findByText('Will there be food?')).toBeInTheDocument();
     expect(screen.getByText('2:00 PM')).toBeInTheDocument();
@@ -177,6 +227,19 @@ describe('EventLandingPage', () => {
     ];
 
     global.fetch = jest.fn((url) => {
+      if (url === '/api/events') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            {
+              session_id: 'test-session-1',
+              title: 'Test Event',
+              start_time: '2025-05-12T14:00:00Z',
+              description: 'desc'
+            }
+          ])
+        });
+      }
       if (url.startsWith('/api/session/')) {
         return Promise.resolve({
           ok: true,
@@ -198,6 +261,7 @@ describe('EventLandingPage', () => {
     });
 
     render(<EventLandingPage />);
+    await selectEvent();
     expect(await screen.findByText('What is the agenda?')).toBeInTheDocument();
 
     questions.push({
@@ -222,7 +286,7 @@ describe('EventLandingPage', () => {
 
     mockInitialFetches();
     const { unmount } = render(<EventLandingPage />);
-    await screen.findByText('Test Event');
+    await selectEvent();
 
     jest.runOnlyPendingTimers();
     unmount();
@@ -232,15 +296,25 @@ describe('EventLandingPage', () => {
   });
 
   it('displays loading state', async () => {
-    global.fetch = jest.fn(() => new Promise(() => {}));
+    global.fetch = jest.fn((url) => {
+      if (url === '/api/events') {
+        return new Promise(() => {}); // never resolves
+      }
+      return Promise.reject(new Error('Unknown endpoint'));
+    });
     render(<EventLandingPage />);
     expect(screen.getByText(/loading event/i)).toBeInTheDocument();
   });
 
   it('handles API error', async () => {
-    global.fetch = jest.fn(() => Promise.reject(new Error('Internal Server Error')));
+    global.fetch = jest.fn((url) => {
+      if (url === '/api/events') {
+        return Promise.reject(new Error('Internal Server Error'));
+      }
+      return Promise.reject(new Error('Unknown endpoint'));
+    });
     render(<EventLandingPage />);
-    expect(await screen.findByText(/event not found/i)).toBeInTheDocument();
+    expect(await screen.findByText(/could not load events/i)).toBeInTheDocument();
   });
 
   it('displays user initials', async () => {
@@ -248,6 +322,7 @@ describe('EventLandingPage', () => {
       { id: 1, user: 'John Doe', text: 'What is the agenda?', timestamp: '2025-05-12T14:00:00Z' }
     ]);
     render(<EventLandingPage />);
+    await selectEvent();
     expect(await screen.findByText('JD:')).toBeInTheDocument();
   });
 
@@ -256,6 +331,7 @@ describe('EventLandingPage', () => {
       { id: 1, text: 'What is the agenda?', timestamp: '2025-05-12T14:00:00Z' }
     ]);
     render(<EventLandingPage />);
+    await selectEvent();
     expect(await screen.findByText('2:00 PM')).toBeInTheDocument();
   });
 
@@ -265,7 +341,15 @@ describe('EventLandingPage', () => {
       { id: 1, text: 'What is the agenda?', user: 'John Doe', timestamp: '2025-05-12T14:00:00Z' }
     ]);
     render(<EventLandingPage />);
-    const questions = await screen.findAllByRole('listitem');
+    await selectEvent();
+    // Wait for a question to appear
+    await screen.findByText('Will there be food?');
+    // Get all question list items by finding the question list container
+    const questionLists = document.querySelectorAll('ul.list-group.mb-3');
+    // The last .list-group.mb-3 is the question list (the first is the event list)
+    const questionList = questionLists[questionLists.length - 1];
+    const questions = Array.from(questionList.querySelectorAll('li'));
+    expect(questions.length).toBeGreaterThanOrEqual(2);
     expect(questions[0]).toHaveTextContent('Will there be food?');
     expect(questions[1]).toHaveTextContent('What is the agenda?');
   });
