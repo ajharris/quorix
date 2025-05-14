@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 function ModeratorDashboard({ sessionId }) {
   const [questions, setQuestions] = useState([]);
@@ -7,23 +7,30 @@ function ModeratorDashboard({ sessionId }) {
   const [error, setError] = useState('');
   const [synthResult, setSynthResult] = useState('');
   const [unauthorized, setUnauthorized] = useState(false);
+  const intervalRef = useRef();
 
+  // Polling for questions every 5 seconds
   useEffect(() => {
-    fetch(`/api/mod/questions/${sessionId}`)
-      .then(res => {
-        if (res.status === 401) throw new Error('unauthorized');
-        if (!res.ok) throw new Error('api');
-        return res.json();
-      })
-      .then(data => {
-        setQuestions(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(e => {
-        if (e.message === 'unauthorized') setUnauthorized(true);
-        else setError('Failed to load questions.');
-        setLoading(false);
-      });
+    const fetchQuestions = () => {
+      fetch(`/api/mod/questions/${sessionId}`)
+        .then(res => {
+          if (res.status === 401) throw new Error('unauthorized');
+          if (!res.ok) throw new Error('api');
+          return res.json();
+        })
+        .then(data => {
+          setQuestions(Array.isArray(data) ? data : []);
+          setLoading(false);
+        })
+        .catch(e => {
+          if (e.message === 'unauthorized') setUnauthorized(true);
+          else setError('Failed to load questions.');
+          setLoading(false);
+        });
+    };
+    fetchQuestions();
+    intervalRef.current = setInterval(fetchQuestions, 5000);
+    return () => clearInterval(intervalRef.current);
   }, [sessionId]);
 
   const handleAction = async (id, action) => {
@@ -65,6 +72,10 @@ function ModeratorDashboard({ sessionId }) {
     }
   };
 
+  // Split questions into pending and approved
+  const pendingQuestions = questions.filter(q => q.status !== 'approved');
+  const approvedQuestions = questions.filter(q => q.status === 'approved');
+
   if (unauthorized) return <div>Unauthorized</div>;
   if (loading) return <div>Loading...</div>;
   if (error) return <div style={{ color: 'red' }}>{error}</div>;
@@ -72,11 +83,12 @@ function ModeratorDashboard({ sessionId }) {
   return (
     <div>
       <h2>Moderator Dashboard</h2>
-      {questions.length === 0 ? (
-        <div>No questions.</div>
+      <h3>Incoming Questions</h3>
+      {pendingQuestions.length === 0 ? (
+        <div>No new questions.</div>
       ) : (
         <ul>
-          {questions.map(q => (
+          {pendingQuestions.map(q => (
             <li key={q.id}>
               <input
                 type="checkbox"
@@ -99,6 +111,16 @@ function ModeratorDashboard({ sessionId }) {
       <button onClick={handleMerge} disabled={selected.length < 2}>Merge Selected</button>
       <button onClick={handleSynthesis}>Trigger Synthesis</button>
       {synthResult && <div data-testid="synth-result">{synthResult}</div>}
+      <h3>Curated (Approved) Questions</h3>
+      {approvedQuestions.length === 0 ? (
+        <div>No approved questions yet.</div>
+      ) : (
+        <ul>
+          {approvedQuestions.map(q => (
+            <li key={q.id}>{q.text}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

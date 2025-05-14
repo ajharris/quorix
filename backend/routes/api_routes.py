@@ -6,6 +6,8 @@ import qrcode
 import io
 from models.question import Question
 from utils.synthesis import get_synthesized_questions, background_summarization
+from models.user import User
+from models.event import Event
 
 routes = Blueprint('routes', __name__)
 
@@ -13,7 +15,42 @@ routes = Blueprint('routes', __name__)
 sessions = {}
 
 # In-memory question storage
-questions = []
+questions = {}
+
+# In-memory user and event storage for demo/testing
+users = {}
+user_events = {}  # user_id -> {'moderator': set(event_id), 'attendee': set(event_id)}
+
+@routes.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    code = data.get('session_code')
+    # For demo, use USERS dict if present, else create new user
+    role = None
+    if hasattr(current_app, 'USERS') and (email, code) in current_app.USERS:
+        role = current_app.USERS[(email, code)]['role']
+    else:
+        role = 'attendee'
+    user_id = email or f"user_{len(users)+1}"
+    if user_id not in users:
+        users[user_id] = User(user_id=user_id, name=email.split('@')[0] if email else user_id, email=email or '', role=role)
+        user_events[user_id] = {'moderator': set(), 'attendee': set()}
+    return jsonify({'role': role, 'user_id': user_id}), 200
+
+@routes.route('/api/user/<user_id>/events')
+def get_user_events(user_id):
+    """Return all events where user is a moderator or attendee."""
+    if user_id not in users:
+        return jsonify({'error': 'User not found'}), 404
+    mod_ids = list(user_events[user_id]['moderator'])
+    att_ids = list(user_events[user_id]['attendee'])
+    mod_events = [sessions[eid] for eid in mod_ids if eid in sessions]
+    att_events = [sessions[eid] for eid in att_ids if eid in sessions]
+    return jsonify({
+        'moderator_for': mod_events,
+        'attendee_in': att_events
+    })
 
 @routes.route('/create_session', methods=['POST'])
 def create_session():
@@ -33,6 +70,9 @@ def create_session():
         "description": description,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    moderator_id = data.get('moderator_id')
+    if moderator_id and moderator_id in users:
+        user_events[moderator_id]['moderator'].add(session_id)
     qr_link = f"https://quorix.ai/session/{session_id}"
     return jsonify({
         "session_id": session_id,
@@ -75,6 +115,8 @@ def submit_question():
         return jsonify({'error': '; '.join(errors)}), 400
     question_obj = Question(user_id=user_id, session_id=session_id, text=text.strip(), status=status)
     questions.append(question_obj.to_dict())
+    if user_id in users and session_id in sessions:
+        user_events[user_id]['attendee'].add(session_id)
     return jsonify({'success': True}), 201
 
 @routes.route('/synthesized_questions')
