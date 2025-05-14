@@ -1,5 +1,4 @@
 from flask import Flask, send_from_directory
-from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
@@ -12,11 +11,19 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
 
-db_url = os.environ.get('SQLALCHEMY_DATABASE_URI')
+# Use SQLALCHEMY_DATABASE_URI for Flask-SQLAlchemy compatibility
+# Accept both QUORIX_DATABASE_URI and SQLALCHEMY_DATABASE_URI for flexibility
+
+db_url = os.environ.get('SQLALCHEMY_DATABASE_URI') or os.environ.get('QUORIX_DATABASE_URI')
 if db_url and db_url.startswith('postgres://'):
     db_url = db_url.replace('postgres://', 'postgresql://', 1)
 
-print("Loaded DATABASE_URL:", db_url)
+if db_url:
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+else:
+    raise RuntimeError("You must set SQLALCHEMY_DATABASE_URI or QUORIX_DATABASE_URI in your environment or .env file.")
+
+print("Loaded SQLALCHEMY_DATABASE_URI:", app.config['SQLALCHEMY_DATABASE_URI'])
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
