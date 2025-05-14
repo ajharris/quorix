@@ -150,22 +150,27 @@ function EventLandingPage() {
         ))}
       </ul>
       {selectedEvent && (
-        <div className="card mb-4">
-          <div className="card-body">
-            <h5 className="card-title">{selectedEvent.title}</h5>
-            <p className="card-text">{selectedEvent.description}</p>
-            <QRCodeImage sessionId={selectedEvent.session_id} />
-            <a
-              href={`/session/${selectedEvent.session_id}`}
-              className="btn btn-primary mt-3"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Go to Event Page
-            </a>
-            <button className="btn btn-link mt-3" onClick={() => setSelectedEvent(null)}>Close</button>
+        <>
+          <div className="card mb-4">
+            <div className="card-body">
+              <h5 className="card-title">{selectedEvent.title}</h5>
+              <p className="card-text">{selectedEvent.description}</p>
+              <QRCodeImage sessionId={selectedEvent.session_id} />
+              <a
+                href={`/session/${selectedEvent.session_id}`}
+                className="btn btn-primary mt-3"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Go to Event Page
+              </a>
+              <button className="btn btn-link mt-3" onClick={() => setSelectedEvent(null)}>Close</button>
+            </div>
           </div>
-        </div>
+          {/* Show question form and list for selected event */}
+          <QuestionForm user={{ id: 1, name: 'Test User' }} sessionId={selectedEvent.session_id} />
+          <QuestionList sessionId={selectedEvent.session_id} />
+        </>
       )}
     </div>
   );

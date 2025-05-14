@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import EventLandingPage from './pages/EventLandingPage';
 import QRCodeImage from './components/QRCodeImage';
 import ModeratorDashboard from './pages/ModeratorDashboard';
+import NavBar from './components/NavBar';
 
 function App() {
   const [message, setMessage] = useState('');
@@ -39,8 +40,13 @@ function App() {
     setUser(null); // or setUser({ role: 'organizer', name: 'Alice' })
   }, []);
 
+  // Add login/logout handlers
+  const handleLogin = (userObj) => setUser(userObj);
+  const handleLogout = () => setUser(null);
+
   return (
     <Router>
+      <NavBar user={user} onLogin={handleLogin} onLogout={handleLogout} />
       <Routes>
         <Route path="/session/:eventCode" element={<EventLandingPage />} />
         <Route path="/moderator/:sessionId" element={<ModeratorDashboardWrapper />} />
