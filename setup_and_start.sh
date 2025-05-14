@@ -46,14 +46,20 @@ FRONTEND_NEWEST=$(find . -type f -printf '%T@\n' | sort -n | tail -1)
 cd ../backend
 BACKEND_NEWEST=$(find . -type f -printf '%T@\n' | sort -n | tail -1)
 cd ../frontend
+SENTINEL=.last_build_sentinel
 if (( $(echo "$FRONTEND_NEWEST > $BACKEND_NEWEST" | bc -l) )); then
-  echo "Frontend is newer than backend. Building frontend..."
-  npm install
-  npm run build
+  if [ ! -f "$SENTINEL" ] || (( $(echo "$FRONTEND_NEWEST > $(cat $SENTINEL)" | bc -l) )); then
+    echo "Frontend is newer than backend or last build. Building frontend..."
+    npm install
+    npm run build
+    echo "$FRONTEND_NEWEST" > $SENTINEL
+  else
+    echo "No frontend changes since last build. Skipping build."
+  fi
 else
   echo "Frontend build is up to date."
 fi
-cd ../backend
+cd ..
 
-# Start backend server
-python app.py
+# Start backend server from project root for correct imports
+python -m backend.app

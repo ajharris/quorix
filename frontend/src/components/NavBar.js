@@ -43,7 +43,7 @@ function NavBar({ user, onLogin, onLogout }) {
     setRegisterLoading(true);
     setRegisterError('');
     try {
-      const res = await fetch('/register', {
+      const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: registerEmail, password: registerPassword })

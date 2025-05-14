@@ -99,3 +99,16 @@ def trigger_summarization():
 @routes.route('/api/ping')
 def ping():
     return jsonify({"message": "Pong!"})
+
+@routes.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+    # For demo: just check if email already exists in sessions (not secure, just for demo)
+    if email in sessions:
+        return jsonify({'error': 'User already exists'}), 409
+    sessions[email] = {'email': email, 'password': password}
+    return jsonify({'success': True, 'message': 'User registered!'}), 201
