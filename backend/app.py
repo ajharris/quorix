@@ -14,14 +14,16 @@ app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
 # Use SQLALCHEMY_DATABASE_URI for Flask-SQLAlchemy compatibility
 # Accept both QUORIX_DATABASE_URI and SQLALCHEMY_DATABASE_URI for flexibility
 
-db_url = os.environ.get('SQLALCHEMY_DATABASE_URI') or os.environ.get('QUORIX_DATABASE_URI')
+db_url = (
+    os.environ.get('SQLALCHEMY_DATABASE_URI') or
+    os.environ.get('QUORIX_DATABASE_URI') or
+    os.environ.get('DATABASE_URL')
+)
 if db_url and db_url.startswith('postgres://'):
     db_url = db_url.replace('postgres://', 'postgresql://', 1)
-
-if db_url:
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-else:
-    raise RuntimeError("You must set SQLALCHEMY_DATABASE_URI or QUORIX_DATABASE_URI in your environment or .env file.")
+if not db_url:
+    raise RuntimeError("You must set SQLALCHEMY_DATABASE_URI or QUORIX_DATABASE_URI or DATABASE_URL in your environment or .env file.")
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 
 print("Loaded SQLALCHEMY_DATABASE_URI:", app.config['SQLALCHEMY_DATABASE_URI'])
 
