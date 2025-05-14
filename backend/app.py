@@ -1,11 +1,25 @@
 from flask import Flask, send_from_directory
 from flask_cors import CORS
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
 import os
 import subprocess
-from routes.api_routes import routes, sessions, questions
+from backend.routes.api_routes import routes, sessions, questions
+
+# Load .env from project root
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
-CORS(app, resources={r"/*": {"origins": "http://your-production-domain.com"}})
+
+db_url = os.environ.get('SQLALCHEMY_DATABASE_URI')
+if db_url and db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+
+print("Loaded DATABASE_URL:", db_url)
+
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # Register routes blueprint
 app.register_blueprint(routes)
