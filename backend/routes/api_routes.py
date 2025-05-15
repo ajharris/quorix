@@ -39,7 +39,7 @@ def login():
         role = 'attendee'
     user_id = email or f"user_{len(users)+1}"
     if user_id not in users:
-        users[user_id] = User(user_id=user_id, name=email.split('@')[0] if email else user_id, email=email or '', role=role)
+        users[user_id] = User(name=email.split('@')[0] if email else user_id, email=email or '', role=role)
         user_events[user_id] = {'moderator': set(), 'attendee': set()}
     return jsonify({'role': role, 'user_id': user_id}), 200
 
