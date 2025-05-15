@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 function NavBar({ user, onLogin, onLogout }) {
   const [showLogin, setShowLogin] = useState(false);
   const [email, setEmail] = useState('');
-  const [sessionCode, setSessionCode] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
@@ -20,14 +20,14 @@ function NavBar({ user, onLogin, onLogout }) {
       const res = await fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, session_code: sessionCode })
+        body: JSON.stringify({ email, password })
       });
       const data = await res.json();
       if (res.ok) {
         onLogin({ email, role: data.role });
         setShowLogin(false);
         setEmail('');
-        setSessionCode('');
+        setPassword('');
       } else {
         setError(data.error || 'Login failed');
       }
@@ -94,11 +94,11 @@ function NavBar({ user, onLogin, onLogout }) {
                       required
                     />
                     <input
-                      type="text"
+                      type="password"
                       className="form-control form-control-sm mb-2"
-                      placeholder="Session Code"
-                      value={sessionCode}
-                      onChange={e => setSessionCode(e.target.value)}
+                      placeholder="Password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
                       required
                     />
                     <button className="btn btn-primary btn-sm mb-2" type="submit" disabled={loading}>
