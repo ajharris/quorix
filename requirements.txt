@@ -81,7 +81,7 @@ notebook_shim==0.2.4
 numpy==2.2.4
 nvidia-cublas-cu12==12.4.5.8
 nvidia-cuda-cupti-cu12==12.4.127
-nvidia-cuda-nvrtc-cu12==12.4.127
+nvidia-cuda-nvrtc-cu12==12.6.77
 nvidia-cuda-runtime-cu12==12.4.127
 nvidia-cudnn-cu12==9.1.0.70
 nvidia-cufft-cu12==11.2.1.3
