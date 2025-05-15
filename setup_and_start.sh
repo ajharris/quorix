@@ -3,6 +3,8 @@
 
 set -e
 
+DEMO_MODE=true
+
 # Check for python3.12, install if missing (Linux only)
 if ! command -v python3.12 &> /dev/null; then
   if command -v python3 &> /dev/null; then
@@ -56,10 +58,12 @@ fi
 
 # Check for DEMO_MODE
 if [ "${DEMO_MODE,,}" = "1" ] || [ "${DEMO_MODE,,}" = "true" ]; then
-  echo "\n==============================="
+  echo
+  echo "==============================="
   echo "  DEMO MODE ENABLED"
   echo "  Seeding demo database with sample data."
-  echo "===============================\n"
+  echo "==============================="
+  echo
   python seed_demo_data.py
 else
   # Only run db migrate/upgrade if models have changed since last migration
@@ -130,4 +134,5 @@ if [ ! -f "frontend/build/index.html" ]; then
 fi
 
 # Start backend server from project root for correct imports
+export DEMO_MODE=1
 python -m backend.app

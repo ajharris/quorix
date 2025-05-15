@@ -217,3 +217,35 @@ def admin_update_user_role(user_id):
     user.role = new_role
     user_db.session.commit()
     return jsonify({'success': True, 'user': user.to_dict()})
+
+@routes.route('/api/admin/questions')
+def admin_list_questions():
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'forbidden'}), 403
+    event_id = request.args.get('event_id')
+    from backend.models.question import Question
+    from backend.models.event import Event
+    from backend.models.user import User
+    q = Question.query
+    if event_id:
+        q = q.filter_by(event_id=event_id)
+    questions = q.all()
+    # Attach event title and user name for display
+    result = []
+    for qu in questions:
+        event = Event.query.get(qu.event_id)
+        user = User.query.get(qu.user_id)
+        result.append({
+            **qu.to_dict(),
+            'event_title': event.title if event else qu.event_id,
+            'user_name': user.name if user else qu.user_id
+        })
+    return jsonify(result)
+
+@routes.route('/api/admin/events')
+def admin_list_events():
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'forbidden'}), 403
+    from backend.models.event import Event
+    events = Event.query.all()
+    return jsonify([{'id': e.id, 'title': e.title, 'name': getattr(e, 'name', None)} for e in events])

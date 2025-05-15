@@ -5,6 +5,7 @@ import QRCodeImage from './components/QRCodeImage';
 import ModeratorDashboard from './pages/ModeratorDashboard';
 import NavBar from './components/NavBar';
 import AdminUserManagement from './components/AdminUserManagement'; // Import the new component
+import AdminQuestionsView from './components/AdminQuestionsView';
 
 function App() {
   const [message, setMessage] = useState('');
@@ -84,6 +85,7 @@ function App() {
                 <h2>Admin View</h2>
                 <p>You are logged in as admin.</p>
                 <AdminUserManagement />
+                <AdminQuestionsView />
               </div>
             )}
           </div>
