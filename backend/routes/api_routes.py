@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, send_file, current_app, session
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import qrcode
 import io
 from backend.models.question import Question
@@ -249,3 +249,75 @@ def admin_list_events():
     from backend.models.event import Event
     events = Event.query.all()
     return jsonify([{'id': e.id, 'title': e.title, 'name': getattr(e, 'name', None)} for e in events])
+
+@routes.route('/api/admin/users/<int:user_id>/ban', methods=['POST'])
+def admin_ban_user(user_id):
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'forbidden'}), 403
+    data = request.get_json()
+    ban_type = data.get('type', 'permanent')
+    duration = data.get('duration')
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'user not found'}), 404
+    user.banned = True
+    user.ban_type = ban_type
+    if ban_type == 'temporary' and duration:
+        try:
+            hours = int(duration)
+            user.ban_until = datetime.utcnow() + timedelta(hours=hours)
+        except Exception:
+            return jsonify({'error': 'invalid duration'}), 400
+    else:
+        user.ban_until = None
+    user_db.session.commit()
+    return jsonify({'success': True, 'user': user.to_dict()})
+
+@routes.route('/api/admin/users/<int:user_id>/unban', methods=['POST'])
+def admin_unban_user(user_id):
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'forbidden'}), 403
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'user not found'}), 404
+    user.banned = False
+    user.ban_type = None
+    user.ban_until = None
+    user_db.session.commit()
+    return jsonify({'success': True, 'user': user.to_dict()})
+
+@routes.route('/api/mod/users/<int:user_id>/ban', methods=['POST'])
+def mod_ban_user(user_id):
+    if session.get('role') != 'moderator':
+        return jsonify({'error': 'forbidden'}), 403
+    data = request.get_json()
+    ban_type = data.get('type', 'permanent')
+    duration = data.get('duration')
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'user not found'}), 404
+    user.banned = True
+    user.ban_type = ban_type
+    if ban_type == 'temporary' and duration:
+        try:
+            hours = int(duration)
+            user.ban_until = datetime.utcnow() + timedelta(hours=hours)
+        except Exception:
+            return jsonify({'error': 'invalid duration'}), 400
+    else:
+        user.ban_until = None
+    user_db.session.commit()
+    return jsonify({'success': True, 'user': user.to_dict()})
+
+@routes.route('/api/mod/users/<int:user_id>/unban', methods=['POST'])
+def mod_unban_user(user_id):
+    if session.get('role') != 'moderator':
+        return jsonify({'error': 'forbidden'}), 403
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'user not found'}), 404
+    user.banned = False
+    user.ban_type = None
+    user.ban_until = None
+    user_db.session.commit()
+    return jsonify({'success': True, 'user': user.to_dict()})

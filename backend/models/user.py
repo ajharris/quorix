@@ -8,6 +8,9 @@ class User(db.Model):
     email = db.Column(db.String(128), unique=True, nullable=False)
     role = db.Column(db.String(32), default='attendee', nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    banned = db.Column(db.Boolean, default=False)
+    ban_type = db.Column(db.String(16), nullable=True)  # 'permanent' or 'temporary'
+    ban_until = db.Column(db.DateTime, nullable=True)  # for temporary bans
 
     ROLES = {'attendee', 'moderator', 'admin', 'organizer'}
 
@@ -23,7 +26,10 @@ class User(db.Model):
             'name': self.name,
             'email': self.email,
             'role': self.role,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'banned': self.banned,
+            'banType': self.ban_type,
+            'banUntil': self.ban_until.isoformat() if self.ban_until else None
         }
 
     @classmethod
