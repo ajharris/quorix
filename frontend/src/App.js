@@ -70,8 +70,6 @@ function App() {
         <Route path="/moderator/:sessionId" element={<ModeratorDashboardWrapper user={{...user, role: effectiveRole}} />} />
         <Route path="/" element={
           <div>
-            <h1>React Frontend</h1>
-            <p>Backend says: {message}</p>
             {/* Only show organizer dashboard if user is organizer */}
             {effectiveRole === 'organizer' && session && (
               <div>

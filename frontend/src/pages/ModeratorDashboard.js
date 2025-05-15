@@ -13,6 +13,10 @@ function ModeratorDashboard({ sessionId, user }) {
   const [eventError, setEventError] = useState('');
   const [isEventModerator, setIsEventModerator] = useState(false);
   const [checkingModerator, setCheckingModerator] = useState(true);
+  const [banDialogUser, setBanDialogUser] = useState(null);
+  const [banType, setBanType] = useState('permanent');
+  const [banDuration, setBanDuration] = useState('');
+  const [banning, setBanning] = useState(false);
 
   // Check if user is moderator for this event
   useEffect(() => {
@@ -147,6 +151,44 @@ function ModeratorDashboard({ sessionId, user }) {
     }
   };
 
+  // Ban/unban handlers
+  const handleBan = (userId) => {
+    setBanDialogUser(userId);
+    setBanType('permanent');
+    setBanDuration('');
+  };
+  const handleBanSubmit = async () => {
+    if (!banDialogUser) return;
+    setBanning(true);
+    try {
+      const res = await fetch(`/api/mod/users/${banDialogUser}/ban`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: banType,
+          duration: banType === 'temporary' ? banDuration : undefined
+        })
+      });
+      if (!res.ok) throw new Error('api');
+      setBanDialogUser(null);
+    } catch {
+      setError('Failed to ban user.');
+    } finally {
+      setBanning(false);
+    }
+  };
+  const handleUnban = async (userId) => {
+    setBanning(true);
+    try {
+      const res = await fetch(`/api/mod/users/${userId}/unban`, { method: 'POST' });
+      if (!res.ok) throw new Error('api');
+    } catch {
+      setError('Failed to unban user.');
+    } finally {
+      setBanning(false);
+    }
+  };
+
   // Split questions into pending and approved
   const pendingQuestions = questions.filter(q => q.status !== 'approved');
   const approvedQuestions = questions.filter(q => q.status === 'approved');
@@ -203,6 +245,8 @@ function ModeratorDashboard({ sessionId, user }) {
               <button onClick={() => handleAction(q.id, 'approve')}>Approve</button>
               <button onClick={() => handleAction(q.id, 'delete')}>Delete</button>
               <button onClick={() => handleAction(q.id, 'flag')}>Flag</button>
+              <button className="btn btn-danger btn-sm ms-2" onClick={() => handleBan(q.user_id)} disabled={banning}>Ban User</button>
+              <button className="btn btn-warning btn-sm ms-2" onClick={() => handleUnban(q.user_id)} disabled={banning}>Unban User</button>
             </li>
           ))}
         </ul>
@@ -219,6 +263,38 @@ function ModeratorDashboard({ sessionId, user }) {
             <li key={q.id}>{q.text}</li>
           ))}
         </ul>
+      )}
+      {/* Ban dialog */}
+      {banDialogUser && (
+        <div className="modal show" style={{ display: 'block', background: 'rgba(0,0,0,0.3)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Ban User: {banDialogUser}</h5>
+                <button type="button" className="btn-close" onClick={() => setBanDialogUser(null)}></button>
+              </div>
+              <div className="modal-body">
+                <div className="mb-2">
+                  <label className="form-label">Ban Type:</label>
+                  <select className="form-select" value={banType} onChange={e => setBanType(e.target.value)}>
+                    <option value="permanent">Permanent</option>
+                    <option value="temporary">Temporary</option>
+                  </select>
+                </div>
+                {banType === 'temporary' && (
+                  <div className="mb-2">
+                    <label className="form-label">Duration (hours):</label>
+                    <input type="number" className="form-control" value={banDuration} onChange={e => setBanDuration(e.target.value)} min="1" />
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setBanDialogUser(null)} disabled={banning}>Cancel</button>
+                <button className="btn btn-danger" onClick={handleBanSubmit} disabled={banning || (banType === 'temporary' && !banDuration)}>Ban</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

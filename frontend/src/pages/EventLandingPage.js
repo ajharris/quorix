@@ -114,11 +114,35 @@ function QuestionList({ sessionId }) {
   );
 }
 
+function GeneratedQuestions({ sessionId }) {
+  const [generated, setGenerated] = useState([]);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    fetch(`/synthesized_questions?session_id=${sessionId}`)
+      .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch generated questions'))
+      .then(data => setGenerated(Array.isArray(data) ? data : []))
+      .catch(() => setError('Failed to load generated questions.'));
+  }, [sessionId]);
+  if (error) return <div className="alert alert-danger">{error}</div>;
+  if (!generated.length) return <div>No generated questions yet.</div>;
+  return (
+    <div className="mb-3">
+      <h5>Generated Questions</h5>
+      <ul className="list-group">
+        {generated.map((q, i) => (
+          <li key={i} className="list-group-item">{q.text || q}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function EventLandingPage() {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [user, setUser] = useState({ id: 1, name: 'Test User', role: 'attendee' }); // Replace with real user logic
 
   useEffect(() => {
     fetch('/api/events')
@@ -167,8 +191,18 @@ function EventLandingPage() {
               <button className="btn btn-link mt-3" onClick={() => setSelectedEvent(null)}>Close</button>
             </div>
           </div>
-          {/* Show question form and list for selected event */}
-          <QuestionForm user={{ id: 1, name: 'Test User' }} sessionId={selectedEvent.session_id} />
+          {/* Show chat, generated questions, and question list for organizers/moderators */}
+          {(user.role === 'organizer' || user.role === 'moderator') && (
+            <>
+              <div className="mb-4">
+                <h5>Event Chat (Coming Soon)</h5>
+                <div className="border rounded p-3 bg-light">Chat feature placeholder</div>
+              </div>
+              <GeneratedQuestions sessionId={selectedEvent.session_id} />
+            </>
+          )}
+          {/* Show question form and list for all roles */}
+          <QuestionForm user={user} sessionId={selectedEvent.session_id} />
           <QuestionList sessionId={selectedEvent.session_id} />
         </>
       )}
