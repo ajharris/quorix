@@ -40,23 +40,29 @@ else
   echo "PyTorch is already installed."
 fi
 
-# Only run db migrate/upgrade if models have changed since last migration
-MODELS_HASH=.models.hash
-MIGRATIONS_DIR=migrations
-MODELS_CHANGED=false
-
-# Hash all model files (now in backend/models, but we are already in backend)
-find models -type f -name '*.py' -exec cat {} + | md5sum | awk '{print $1}' > .models.hash.new
-if [ ! -f "$MODELS_HASH" ] || ! cmp -s .models.hash.new $MODELS_HASH; then
-  MODELS_CHANGED=true
-  echo "Detected model changes. Running db migrate and upgrade..."
-  export FLASK_APP=app.py
-  flask db migrate -m "Auto migration from setup_and_start.sh"
-  flask db upgrade
-  mv .models.hash.new $MODELS_HASH
+# Check for DEMO_MODE
+if [ "${DEMO_MODE,,}" = "1" ] || [ "${DEMO_MODE,,}" = "true" ]; then
+  echo "DEMO_MODE enabled: Seeding demo database with sample data."
+  python seed_demo_data.py
 else
-  echo "No model changes detected. Skipping db migrate/upgrade."
-  rm .models.hash.new
+  # Only run db migrate/upgrade if models have changed since last migration
+  MODELS_HASH=.models.hash
+  MIGRATIONS_DIR=migrations
+  MODELS_CHANGED=false
+
+  # Hash all model files (now in backend/models, but we are already in backend)
+  find models -type f -name '*.py' -exec cat {} + | md5sum | awk '{print $1}' > .models.hash.new
+  if [ ! -f "$MODELS_HASH" ] || ! cmp -s .models.hash.new $MODELS_HASH; then
+    MODELS_CHANGED=true
+    echo "Detected model changes. Running db migrate and upgrade..."
+    export FLASK_APP=app.py
+    flask db migrate -m "Auto migration from setup_and_start.sh"
+    flask db upgrade
+    mv .models.hash.new $MODELS_HASH
+  else
+    echo "No model changes detected. Skipping db migrate/upgrade."
+    rm .models.hash.new
+  fi
 fi
 
 # --- FRONTEND BUILD CHECK/BUILD LOGIC ---
