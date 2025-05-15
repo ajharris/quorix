@@ -15,15 +15,21 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key')  # Set a secret 
 # Use SQLALCHEMY_DATABASE_URI for Flask-SQLAlchemy compatibility
 # Accept both QUORIX_DATABASE_URI and SQLALCHEMY_DATABASE_URI for flexibility
 
-db_url = (
-    os.environ.get('SQLALCHEMY_DATABASE_URI') or
-    os.environ.get('QUORIX_DATABASE_URI') or
-    os.environ.get('DATABASE_URL')
-)
-if db_url and db_url.startswith('postgres://'):
-    db_url = db_url.replace('postgres://', 'postgresql://', 1)
-if not db_url:
-    raise RuntimeError("You must set SQLALCHEMY_DATABASE_URI or QUORIX_DATABASE_URI or DATABASE_URL in your environment or .env file.")
+# DEMO_MODE: use local SQLite DB if set
+if os.environ.get('DEMO_MODE', '').lower() in ('1', 'true', 'yes'):
+    db_url = 'sqlite:///demo.db'
+    print('DEMO_MODE enabled: Using SQLite database at demo.db')
+else:
+    db_url = (
+        os.environ.get('SQLALCHEMY_DATABASE_URI') or
+        os.environ.get('QUORIX_DATABASE_URI') or
+        os.environ.get('DATABASE_URL')
+    )
+    if db_url and db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql://', 1)
+    if not db_url:
+        raise RuntimeError("You must set SQLALCHEMY_DATABASE_URI or QUORIX_DATABASE_URI or DATABASE_URL in your environment or .env file.")
+
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 
 print("Loaded SQLALCHEMY_DATABASE_URI:", app.config['SQLALCHEMY_DATABASE_URI'])
