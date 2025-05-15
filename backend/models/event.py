@@ -1,30 +1,27 @@
-# Event model for storing event/session metadata
-from datetime import datetime, timezone
+from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
 
-class Event:
-    def __init__(self, event_id, title, start_time, description='', created_at=None):
-        self.event_id = event_id
+from backend.models.user import db  # Use the same db instance
+
+class Event(db.Model):
+    __tablename__ = 'events'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(256), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    description = db.Column(db.Text, default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    def __init__(self, title, start_time, description='', created_at=None):
         self.title = title
-        self.start_time = start_time  # ISO string or datetime
+        self.start_time = start_time
         self.description = description
-        self.created_at = created_at or datetime.now(timezone.utc)
+        self.created_at = created_at or datetime.utcnow()
 
     def to_dict(self):
         return {
-            'event_id': self.event_id,
+            'id': self.id,
             'title': self.title,
-            'start_time': self.start_time if isinstance(self.start_time, str) else self.start_time.isoformat(),
+            'start_time': self.start_time.isoformat() if self.start_time else None,
             'description': self.description,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
-
-    @classmethod
-    def validate(cls, data):
-        errors = []
-        if not data.get('event_id'):
-            errors.append('event_id is required')
-        if not data.get('title'):
-            errors.append('title is required')
-        if not data.get('start_time'):
-            errors.append('start_time is required')
-        return errors

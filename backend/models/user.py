@@ -1,30 +1,36 @@
-# User model for storing attendee/moderator/admin info
 from datetime import datetime, timezone
+from flask_sqlalchemy import SQLAlchemy
 
-class User:
+db = SQLAlchemy()
+
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    email = db.Column(db.String(128), unique=True, nullable=False)
+    role = db.Column(db.String(32), default='attendee', nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
     ROLES = {'attendee', 'moderator', 'admin', 'organizer'}
 
-    def __init__(self, user_id, name, email, role='attendee', created_at=None):
-        self.user_id = user_id
+    def __init__(self, name, email, role='attendee', created_at=None):
         self.name = name
         self.email = email
         self.role = role if role in self.ROLES else 'attendee'
-        self.created_at = created_at or datetime.now(timezone.utc)
+        self.created_at = created_at or datetime.utcnow()
 
     def to_dict(self):
         return {
-            'user_id': self.user_id,
+            'id': self.id,
             'name': self.name,
             'email': self.email,
             'role': self.role,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
     @classmethod
     def validate(cls, data):
         errors = []
-        if not data.get('user_id'):
-            errors.append('user_id is required')
         if not data.get('name'):
             errors.append('name is required')
         if not data.get('email'):

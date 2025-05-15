@@ -4,10 +4,10 @@ import uuid
 from datetime import datetime, timezone
 import qrcode
 import io
-from models.question import Question
-from utils.synthesis import get_synthesized_questions, background_summarization
-from models.user import User
-from models.event import Event
+from backend.models.question import Question
+from backend.utils.synthesis import get_synthesized_questions, background_summarization
+from backend.models.user import User
+from backend.models.event import Event
 
 routes = Blueprint('routes', __name__)
 
