@@ -42,22 +42,19 @@ fi
 
 # Build frontend if any file in frontend/ is newer than any file in backend/
 cd ../frontend
-FRONTEND_NEWEST=$(find . -type f -printf '%T@\n' | sort -n | tail -1)
-cd ../backend
-BACKEND_NEWEST=$(find . -type f -printf '%T@\n' | sort -n | tail -1)
-cd ../frontend
 SENTINEL=.last_build_sentinel
-if (( $(echo "$FRONTEND_NEWEST > $BACKEND_NEWEST" | bc -l) )); then
-  if [ ! -f "$SENTINEL" ] || (( $(echo "$FRONTEND_NEWEST > $(cat $SENTINEL)" | bc -l) )); then
-    echo "Frontend is newer than backend or last build. Building frontend..."
-    npm install
-    npm run build
-    echo "$FRONTEND_NEWEST" > $SENTINEL
-  else
-    echo "No frontend changes since last build. Skipping build."
-  fi
+HASH_CMD="find src public package.json package-lock.json 2>/dev/null | sort | xargs cat 2>/dev/null | sha256sum | cut -d' ' -f1"
+CURRENT_HASH=$(eval $HASH_CMD)
+LAST_HASH=""
+if [ -f "$SENTINEL" ]; then
+  LAST_HASH=$(cat $SENTINEL)
+fi
+if [ "$CURRENT_HASH" != "$LAST_HASH" ]; then
+  echo "Frontend source changed or not built. Building frontend..."
+  npm install
+  npm run build && echo "$CURRENT_HASH" > $SENTINEL
 else
-  echo "Frontend build is up to date."
+  echo "No frontend changes since last build. Skipping build."
 fi
 cd ..
 
