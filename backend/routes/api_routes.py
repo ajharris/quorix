@@ -112,3 +112,16 @@ def register():
         return jsonify({'error': 'User already exists'}), 409
     sessions[email] = {'email': email, 'password': password}
     return jsonify({'success': True, 'message': 'User registered!'}), 201
+
+@routes.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+    user = sessions.get(email)
+    if not user or user.get('password') != password:
+        return jsonify({'error': 'Invalid credentials'}), 401
+    # For demo, assign role 'attendee' to all logins
+    return jsonify({'role': 'attendee'}), 200
