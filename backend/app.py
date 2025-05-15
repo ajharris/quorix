@@ -1,11 +1,44 @@
 from flask import Flask, send_from_directory
-from flask_cors import CORS
+from flask_migrate import Migrate
+from dotenv import load_dotenv
 import os
 import subprocess
-from routes.api_routes import routes, sessions, questions
+from backend.routes.api_routes import routes, sessions, questions
+from backend.models.db import db
+
+# Load .env from project root
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
-CORS(app, resources={r"/*": {"origins": "http://your-production-domain.com"}})
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key')  # Set a secret key for session support
+
+# Use SQLALCHEMY_DATABASE_URI for Flask-SQLAlchemy compatibility
+# Accept both QUORIX_DATABASE_URI and SQLALCHEMY_DATABASE_URI for flexibility
+
+def get_demo_mode():
+    # Accepts DEMO_MODE=1, true, True, TRUE
+    return os.environ.get('DEMO_MODE', '').lower() in ('1', 'true')
+
+if get_demo_mode():
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///demo.db'
+    print('DEMO_MODE enabled: Using SQLite database at demo.db')
+else:
+    db_url = (
+        os.environ.get('SQLALCHEMY_DATABASE_URI') or
+        os.environ.get('QUORIX_DATABASE_URI') or
+        os.environ.get('DATABASE_URL')
+    )
+    if db_url and db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql://', 1)
+    if not db_url:
+        raise RuntimeError("You must set SQLALCHEMY_DATABASE_URI or QUORIX_DATABASE_URI or DATABASE_URL in your environment or .env file.")
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+
+print("Loaded SQLALCHEMY_DATABASE_URI:", app.config['SQLALCHEMY_DATABASE_URI'])
+
+db.init_app(app)
+migrate = Migrate(app, db)
 
 # Register routes blueprint
 app.register_blueprint(routes)
@@ -26,8 +59,7 @@ def serve_react(path=''):
 
 # Only build frontend if running as main app, not during import (e.g., for tests)
 if __name__ == '__main__':
-    FRONTEND_DIR = os.path.join(os.getcwd(), '..', 'frontend')  # adjust if needed
+    FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend'))
     print("Building React frontend...")
     subprocess.run(['npm', 'run', 'build'], cwd=FRONTEND_DIR)
-
     app.run(host='0.0.0.0', port=5000)
