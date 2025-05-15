@@ -1,7 +1,5 @@
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
-
-from backend.models.user import db  # Use the same db instance
+from backend.models.db import db  # Use the same db instance
 
 class Event(db.Model):
     __tablename__ = 'events'

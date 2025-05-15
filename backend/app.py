@@ -1,10 +1,10 @@
 from flask import Flask, send_from_directory
 from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 import subprocess
 from backend.routes.api_routes import routes, sessions, questions
+from backend.models.db import db
 
 # Load .env from project root
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -28,7 +28,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 
 print("Loaded SQLALCHEMY_DATABASE_URI:", app.config['SQLALCHEMY_DATABASE_URI'])
 
-db = SQLAlchemy(app)
+db.init_app(app)
 migrate = Migrate(app, db)
 
 # Register routes blueprint
