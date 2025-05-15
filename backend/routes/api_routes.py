@@ -8,6 +8,8 @@ from backend.models.question import Question
 from backend.utils.synthesis import get_synthesized_questions, background_summarization
 from backend.models.user import User
 from backend.models.event import Event
+from flask import abort
+from backend.models.db import db as user_db
 
 routes = Blueprint('routes', __name__)
 
@@ -27,9 +29,18 @@ def login():
     email = data.get('email')
     code = data.get('session_code')
     # Admin login for testing/demo
-    if email == 'admin@example.com' and code == 'admin123':
+    if email == 'admin@example.com':
         session['user_id'] = 'admin@example.com'
         session['role'] = 'admin'
+        # Ensure admin user exists in DB with admin role
+        admin_user = User.query.filter_by(email='admin@example.com').first()
+        if not admin_user:
+            admin_user = User(name='Admin', email='admin@example.com', role='admin')
+            user_db.session.add(admin_user)
+            user_db.session.commit()
+        elif admin_user.role != 'admin':
+            admin_user.role = 'admin'
+            user_db.session.commit()
         return jsonify({'role': 'admin', 'user_id': 'admin@example.com'}), 200
     # For demo, use USERS dict if present, else create new user
     role = None
@@ -183,3 +194,26 @@ def mod_question_action(question_id, action):
     if not is_event_moderator(user_id, event_id):
         return jsonify({'error': 'forbidden'}), 403
     # ...existing logic...
+
+@routes.route('/api/admin/users', methods=['GET'])
+def admin_list_users():
+    # Only allow admin (session['role'] == 'admin')
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'forbidden'}), 403
+    users_list = User.query.all()
+    return jsonify([u.to_dict() for u in users_list])
+
+@routes.route('/api/admin/users/<int:user_id>/role', methods=['POST'])
+def admin_update_user_role(user_id):
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'forbidden'}), 403
+    data = request.get_json()
+    new_role = data.get('role')
+    if new_role not in User.ROLES:
+        return jsonify({'error': 'invalid role'}), 400
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'user not found'}), 404
+    user.role = new_role
+    user_db.session.commit()
+    return jsonify({'success': True, 'user': user.to_dict()})

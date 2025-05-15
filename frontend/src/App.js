@@ -4,6 +4,7 @@ import EventLandingPage from './pages/EventLandingPage';
 import QRCodeImage from './components/QRCodeImage';
 import ModeratorDashboard from './pages/ModeratorDashboard';
 import NavBar from './components/NavBar';
+import AdminUserManagement from './components/AdminUserManagement'; // Import the new component
 
 function App() {
   const [message, setMessage] = useState('');
@@ -56,6 +57,7 @@ function App() {
           <b>Admin View Switcher:</b>
           <select value={viewOverride || user.role} onChange={e => setViewOverride(e.target.value === user.role ? null : e.target.value)}>
             <option value="admin">Admin</option>
+            <option value="organizer">Organizer</option>
             <option value="moderator">Moderator</option>
             <option value="attendee">Attendee</option>
             <option value="">(Actual Role)</option>
@@ -77,7 +79,13 @@ function App() {
                 <QRCodeImage sessionId={session.session_id} />
               </div>
             )}
-            {effectiveRole === 'admin' && <div><h2>Admin View</h2><p>You are logged in as admin.</p></div>}
+            {effectiveRole === 'admin' && (
+              <div>
+                <h2>Admin View</h2>
+                <p>You are logged in as admin.</p>
+                <AdminUserManagement />
+              </div>
+            )}
           </div>
         } />
       </Routes>
