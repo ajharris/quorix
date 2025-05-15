@@ -3,28 +3,42 @@
 
 set -e
 
-# Check for python3.12
+# Check for python3.12, install if missing (Linux only)
 if ! command -v python3.12 &> /dev/null; then
-  echo "Python 3.12 not found. Installing with Homebrew..."
-  brew install python@3.12
+  if command -v python3 &> /dev/null; then
+    PYTHON_VERSION=$(python3 --version | awk '{print $2}')
+    PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+    PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+    if [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -ge 11 ] && [ "$PYTHON_MINOR" -le 12 ]; then
+      echo "python3.12 not found, but python3 version $PYTHON_VERSION is available. Using python3."
+      PYTHON_CMD=python3
+    else
+      echo "ERROR: Python 3.11 or 3.12 is required. Found python3 version $PYTHON_VERSION. Please install Python 3.11 or 3.12."
+      exit 1
+    fi
+  else
+    echo "ERROR: Python 3.11 or 3.12 is required but not found. Please install Python 3.11 or 3.12 and try again."
+    exit 1
+  fi
+else
+  PYTHON_CMD=python3.12
 fi
 
 # Create venv if it doesn't exist
 if [ ! -d "venv" ]; then
-  echo "Creating Python 3.12 virtual environment..."
-  python3.12 -m venv venv
+  echo "Creating Python virtual environment..."
+  $PYTHON_CMD -m venv venv
 fi
 
 # Activate venv
-source venv/bin/activate
-
-# Upgrade pip
-pip install --upgrade pip
+source "$(dirname "$0")/venv/bin/activate"
 
 # Only install backend dependencies if requirements.txt has changed since last install
 cd backend
+source ../venv/bin/activate
 REQUIREMENTS_HASH=.requirements.hash
-if [ ! -f "$REQUIREMENTS_HASH" ] || ! cmp -s requirements.txt $REQUIREMENTS_HASH; then
+# Always install if Flask is missing, even if hash matches
+if [ ! -f "$REQUIREMENTS_HASH" ] || ! cmp -s requirements.txt $REQUIREMENTS_HASH || ! python -c "import flask" 2>/dev/null; then
   echo "Installing backend dependencies..."
   pip install -r requirements.txt
   cp requirements.txt $REQUIREMENTS_HASH
@@ -42,7 +56,10 @@ fi
 
 # Check for DEMO_MODE
 if [ "${DEMO_MODE,,}" = "1" ] || [ "${DEMO_MODE,,}" = "true" ]; then
-  echo "DEMO_MODE enabled: Seeding demo database with sample data."
+  echo "\n==============================="
+  echo "  DEMO MODE ENABLED"
+  echo "  Seeding demo database with sample data."
+  echo "===============================\n"
   python seed_demo_data.py
 else
   # Only run db migrate/upgrade if models have changed since last migration
@@ -74,6 +91,12 @@ PUBLIC_DIR=public
 SENTINEL=.last_build_sentinel
 
 NEED_BUILD=false
+
+# Ensure 'bc' is installed for frontend build checks
+if ! command -v bc &> /dev/null; then
+  echo "Installing 'bc' utility for build checks..."
+  sudo apt-get update && sudo apt-get install -y bc
+fi
 
 # 1. If build dir or index.html missing, must build
 if [ ! -d "$BUILD_DIR" ] || [ ! -f "$BUILD_INDEX" ]; then
