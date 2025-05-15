@@ -10,6 +10,7 @@ from backend.routes.api_routes import routes, sessions, questions
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key')  # Set a secret key for session support
 
 # Use SQLALCHEMY_DATABASE_URI for Flask-SQLAlchemy compatibility
 # Accept both QUORIX_DATABASE_URI and SQLALCHEMY_DATABASE_URI for flexibility
@@ -49,8 +50,7 @@ def serve_react(path=''):
 
 # Only build frontend if running as main app, not during import (e.g., for tests)
 if __name__ == '__main__':
-    FRONTEND_DIR = os.path.join(os.getcwd(), 'frontend')  # fixed path
+    FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend'))
     print("Building React frontend...")
     subprocess.run(['npm', 'run', 'build'], cwd=FRONTEND_DIR)
-
     app.run(host='0.0.0.0', port=5000)

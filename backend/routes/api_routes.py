@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, send_file, current_app
+from flask import Blueprint, jsonify, request, send_file, current_app, session
 import os
 import uuid
 from datetime import datetime, timezone
@@ -6,6 +6,8 @@ import qrcode
 import io
 from backend.models.question import Question
 from backend.utils.synthesis import get_synthesized_questions, background_summarization
+from backend.models.user import User
+from backend.models.event import Event
 
 routes = Blueprint('routes', __name__)
 
@@ -13,7 +15,47 @@ routes = Blueprint('routes', __name__)
 sessions = {}
 
 # In-memory question storage
-questions = []
+questions = {}
+
+# In-memory user and event storage for demo/testing
+users = {}
+user_events = {}  # user_id -> {'moderator': set(event_id), 'attendee': set(event_id)}
+
+@routes.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    code = data.get('session_code')
+    # Admin login for testing/demo
+    if email == 'admin@example.com' and code == 'admin123':
+        session['user_id'] = 'admin@example.com'
+        session['role'] = 'admin'
+        return jsonify({'role': 'admin', 'user_id': 'admin@example.com'}), 200
+    # For demo, use USERS dict if present, else create new user
+    role = None
+    if hasattr(current_app, 'USERS') and (email, code) in current_app.USERS:
+        role = current_app.USERS[(email, code)]['role']
+    else:
+        role = 'attendee'
+    user_id = email or f"user_{len(users)+1}"
+    if user_id not in users:
+        users[user_id] = User(name=email.split('@')[0] if email else user_id, email=email or '', role=role)
+        user_events[user_id] = {'moderator': set(), 'attendee': set()}
+    return jsonify({'role': role, 'user_id': user_id}), 200
+
+@routes.route('/api/user/<user_id>/events')
+def get_user_events(user_id):
+    """Return all events where user is a moderator or attendee."""
+    if user_id not in users:
+        return jsonify({'error': 'User not found'}), 404
+    mod_ids = list(user_events[user_id]['moderator'])
+    att_ids = list(user_events[user_id]['attendee'])
+    mod_events = [sessions[eid] for eid in mod_ids if eid in sessions]
+    att_events = [sessions[eid] for eid in att_ids if eid in sessions]
+    return jsonify({
+        'moderator_for': mod_events,
+        'attendee_in': att_events
+    })
 
 @routes.route('/create_session', methods=['POST'])
 def create_session():
@@ -33,6 +75,9 @@ def create_session():
         "description": description,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    moderator_id = data.get('moderator_id')
+    if moderator_id and moderator_id in users:
+        user_events[moderator_id]['moderator'].add(session_id)
     qr_link = f"https://quorix.ai/session/{session_id}"
     return jsonify({
         "session_id": session_id,
@@ -81,6 +126,8 @@ def submit_question():
         return jsonify({'error': '; '.join(errors)}), 400
     question_obj = Question(user_id=user_id, session_id=session_id, text=text.strip(), status=status)
     questions.append(question_obj.to_dict())
+    if user_id in users and session_id in sessions:
+        user_events[user_id]['attendee'].add(session_id)
     return jsonify({'success': True}), 201
 
 @routes.route('/synthesized_questions')
@@ -113,15 +160,26 @@ def register():
     sessions[email] = {'email': email, 'password': password}
     return jsonify({'success': True, 'message': 'User registered!'}), 201
 
-@routes.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    if not email or not password:
-        return jsonify({'error': 'Email and password required'}), 400
-    user = sessions.get(email)
-    if not user or user.get('password') != password:
-        return jsonify({'error': 'Invalid credentials'}), 401
-    # For demo, assign role 'attendee' to all logins
-    return jsonify({'role': 'attendee'}), 200
+# Helper: check if user is moderator for event
+
+def is_event_moderator(user_id, event_id):
+    return user_id in user_events and event_id in user_events[user_id]['moderator']
+
+@routes.route('/api/mod/questions/<event_id>')
+def get_mod_questions(event_id):
+    user_id = session.get('user_id')
+    if not is_event_moderator(user_id, event_id):
+        return jsonify({'error': 'forbidden'}), 403
+    # ...existing logic for returning questions...
+
+# Repeat similar event-level moderator checks for all /api/mod/* endpoints that require moderator access
+# Example for approve/delete/flag/merge/synthesize endpoints:
+
+@routes.route('/api/mod/question/<question_id>/<action>', methods=['POST'])
+def mod_question_action(question_id, action):
+    user_id = session.get('user_id')
+    # Find event_id for this question (implement lookup as needed)
+    event_id = ... # Lookup event_id for question_id
+    if not is_event_moderator(user_id, event_id):
+        return jsonify({'error': 'forbidden'}), 403
+    # ...existing logic...
