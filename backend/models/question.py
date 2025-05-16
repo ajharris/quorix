@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
 from backend.models.db import db  # Use the same db instance
 
+# --- Question Model ---
+# Represents a question submitted by a user for a session/event. Used by SQLAlchemy ORM.
 class Question(db.Model):
     __tablename__ = 'questions'
     __table_args__ = {'extend_existing': True}
+    # --- Columns ---
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(128), nullable=False)
     session_id = db.Column(db.String(128), nullable=False)
@@ -11,10 +14,19 @@ class Question(db.Model):
     status = db.Column(db.String(32), default='pending', nullable=False)
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
+    # --- Status and validation constants ---
     STATUS_VALUES = {'pending', 'approved', 'merged', 'deleted'}
     MAX_TEXT_LENGTH = 500
 
     def __init__(self, user_id, session_id, text, status='pending', timestamp=None):
+        """
+        Initialize a new Question instance.
+        - user_id: ID of the user who submitted the question
+        - session_id: ID of the session/event
+        - text: The question text
+        - status: Question status (default: pending)
+        - timestamp: Optional timestamp (default: now)
+        """
         self.user_id = user_id
         self.session_id = session_id
         self.text = text
@@ -22,6 +34,10 @@ class Question(db.Model):
         self.timestamp = timestamp or datetime.now(timezone.utc)
 
     def to_dict(self):
+        """
+        Return a dictionary representation of the question for API responses.
+        Includes ISO-formatted timestamps.
+        """
         return {
             'id': getattr(self, 'id', None),
             'user_id': self.user_id,
@@ -33,6 +49,10 @@ class Question(db.Model):
 
     @classmethod
     def validate(cls, data):
+        """
+        Validate question data for creation or update.
+        Returns a list of error messages (empty if valid).
+        """
         errors = []
         if not data.get('user_id'):
             errors.append('user_id is required')

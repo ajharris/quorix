@@ -1,149 +1,23 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import QRCodeImage from '../components/QRCodeImage';
+import EventQuestionForm from './EventQuestionForm';
+import EventQuestionList from './EventQuestionList';
+import GeneratedQuestions from './GeneratedQuestions';
 
-function QuestionForm({ user, sessionId }) {
-  const [question, setQuestion] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    if (!question.trim()) {
-      setError('Question cannot be empty.');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await fetch('/questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user.id,
-          session_id: sessionId,
-          question: question.trim(),
-        }),
-      });
-      if (res.ok) {
-        setQuestion('');
-        setSuccess('Question submitted!');
-      } else {
-        const data = await res.json();
-        setError(data.error || 'Submission failed.');
-      }
-    } catch (err) {
-      setError('Network error. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="mb-3">
-      <label htmlFor="question" className="form-label">Ask a question:</label>
-      <textarea
-        id="question"
-        value={question}
-        onChange={e => setQuestion(e.target.value)}
-        rows={3}
-        className="form-control mb-2"
-        disabled={submitting}
-      />
-      <button type="submit" className="btn btn-primary" disabled={submitting}>
-        Submit
-      </button>
-      {error && <div className="alert alert-danger mt-2" role="alert">{error}</div>}
-      {success && <div className="alert alert-success mt-2" role="alert">{success}</div>}
-    </form>
-  );
-}
-
-function QuestionList({ sessionId }) {
-  const [questions, setQuestions] = useState([]); // Initialize as an empty array
-  const [error, setError] = useState('');
-  const intervalRef = useRef();
-
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      try {
-        const res = await fetch(`/api/questions/${sessionId}`);
-        if (!res.ok) throw new Error('Failed to fetch questions');
-        const data = await res.json();
-        setQuestions(Array.isArray(data) ? data : []); // Ensure questions is always an array
-      } catch (err) {
-        setError('Failed to load questions.');
-        setQuestions([]); // Clear questions on error
-      }
-    };
-
-    fetchQuestions();
-    intervalRef.current = setInterval(fetchQuestions, 5000); // Poll every 5 seconds
-    return () => clearInterval(intervalRef.current); // Cleanup polling on unmount
-  }, [sessionId]);
-
-  if (error) return <div className="alert alert-danger" role="alert">{error}</div>;
-
-  // Sort questions by timestamp descending
-  const sortedQuestions = [...questions].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  // Helper to get initials from user (string or object)
-  const getInitials = (user) => {
-    if (!user) return '??';
-    if (typeof user === 'string') {
-      return user.split(' ').map((n) => n[0]).join('').toUpperCase();
-    }
-    if (typeof user === 'object' && user.name) {
-      return user.name.split(' ').map((n) => n[0]).join('').toUpperCase();
-    }
-    return '??';
-  };
-
-  return (
-    <ul className="list-group mb-3">
-      {sortedQuestions.map((q) => (
-        <li key={q.id} role="listitem" className="list-group-item">
-          <strong>{getInitials(q.user)}:</strong> {q.text}
-          <br />
-          <small className="text-muted">{new Date(q.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' })}</small>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function GeneratedQuestions({ sessionId }) {
-  const [generated, setGenerated] = useState([]);
-  const [error, setError] = useState('');
-  useEffect(() => {
-    fetch(`/synthesized_questions?session_id=${sessionId}`)
-      .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch generated questions'))
-      .then(data => setGenerated(Array.isArray(data) ? data : []))
-      .catch(() => setError('Failed to load generated questions.'));
-  }, [sessionId]);
-  if (error) return <div className="alert alert-danger">{error}</div>;
-  if (!generated.length) return <div>No generated questions yet.</div>;
-  return (
-    <div className="mb-3">
-      <h5>Generated Questions</h5>
-      <ul className="list-group">
-        {generated.map((q, i) => (
-          <li key={i} className="list-group-item">{q.text || q}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
+// --- EventLandingPage Component ---
+// This page displays a list of available events, allows users to select an event,
+// view event details, submit questions, and see generated/synthesized questions.
 function EventLandingPage() {
+  // --- State for events, selection, loading, error, and user (demo) ---
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [user, setUser] = useState({ id: 1, name: 'Test User', role: 'attendee' }); // Replace with real user logic
+  // For demo: hardcoded user; in production, get from auth context
+  const [user, setUser] = useState({ id: 1, name: 'Test User', role: 'attendee' });
 
+  // --- Fetch events on mount ---
   useEffect(() => {
     fetch('/api/events')
       .then(res => res.ok ? res.json() : Promise.reject('Failed to load events'))
@@ -157,12 +31,15 @@ function EventLandingPage() {
       });
   }, []);
 
+  // --- Render loading or error states ---
   if (loading) return <div className="text-center mt-5">Loading events...</div>;
   if (error) return <div className="alert alert-danger mt-5" role="alert">{error}</div>;
 
+  // --- Rendered UI ---
   return (
     <div className="container py-4">
       <h1 className="mb-4">Available Events</h1>
+      {/* List of events */}
       <ul className="list-group mb-4">
         {events.map(event => (
           <li key={event.session_id} className="list-group-item d-flex justify-content-between align-items-center">
@@ -173,12 +50,14 @@ function EventLandingPage() {
           </li>
         ))}
       </ul>
+      {/* Event details and actions when an event is selected */}
       {selectedEvent && (
         <>
           <div className="card mb-4">
             <div className="card-body">
               <h5 className="card-title">{selectedEvent.title}</h5>
               <p className="card-text">{selectedEvent.description}</p>
+              {/* Show QR code for joining the event */}
               <QRCodeImage sessionId={selectedEvent.session_id} />
               <a
                 href={`/session/${selectedEvent.session_id}`}
@@ -198,12 +77,16 @@ function EventLandingPage() {
                 <h5>Event Chat (Coming Soon)</h5>
                 <div className="border rounded p-3 bg-light">Chat feature placeholder</div>
               </div>
+            </>
+          )}
+          {/* Show question form and list for attendees */}
+          {user.role === 'attendee' && (
+            <>
+              <EventQuestionForm user={user} sessionId={selectedEvent.session_id} />
+              <EventQuestionList sessionId={selectedEvent.session_id} />
               <GeneratedQuestions sessionId={selectedEvent.session_id} />
             </>
           )}
-          {/* Show question form and list for all roles */}
-          <QuestionForm user={user} sessionId={selectedEvent.session_id} />
-          <QuestionList sessionId={selectedEvent.session_id} />
         </>
       )}
     </div>

@@ -1,6 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
+import ModeratorBanDialog from './ModeratorBanDialog';
+import ModeratorQuestionList from './ModeratorQuestionList';
+import ModeratorApprovedList from './ModeratorApprovedList';
 
+// --- ModeratorDashboard Component ---
+// This page is for moderators to manage questions for a session/event.
+// It allows viewing, approving, deleting, merging, and synthesizing questions, as well as banning users.
 function ModeratorDashboard({ sessionId, user }) {
+  // --- State for questions, selection, loading, errors, and moderator status ---
   const [questions, setQuestions] = useState([]);
   const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +25,7 @@ function ModeratorDashboard({ sessionId, user }) {
   const [banDuration, setBanDuration] = useState('');
   const [banning, setBanning] = useState(false);
 
-  // Check if user is moderator for this event
+  // --- Check if user is moderator for this event ---
   useEffect(() => {
     if (!user || !user.id || !sessionId) return;
     fetch(`/api/user/${user.id}/events`)
@@ -36,7 +43,7 @@ function ModeratorDashboard({ sessionId, user }) {
       });
   }, [user, sessionId]);
 
-  // Polling for questions every 5 seconds
+  // --- Polling for questions every 5 seconds ---
   useEffect(() => {
     const fetchQuestions = () => {
       fetch(`/api/mod/questions/${sessionId}`)
@@ -60,7 +67,7 @@ function ModeratorDashboard({ sessionId, user }) {
     return () => clearInterval(intervalRef.current);
   }, [sessionId]);
 
-  // Fetch events for moderator controls
+  // --- Fetch events for moderator controls ---
   useEffect(() => {
     fetch('/api/mod/events')
       .then(res => {
@@ -77,6 +84,7 @@ function ModeratorDashboard({ sessionId, user }) {
       });
   }, []);
 
+  // --- Handlers for moderator actions (approve, delete, merge, synthesize, ban, unban) ---
   const handleAction = async (id, action) => {
     try {
       const res = await fetch(`/api/mod/question/${id}/${action}`, { method: 'POST' });
@@ -116,7 +124,7 @@ function ModeratorDashboard({ sessionId, user }) {
     }
   };
 
-  // Event handlers
+  // --- Event handlers for event management (start, access, close) ---
   const handleStartEvent = async () => {
     const name = window.prompt('Enter new event name:');
     if (!name) return;
@@ -151,7 +159,7 @@ function ModeratorDashboard({ sessionId, user }) {
     }
   };
 
-  // Ban/unban handlers
+  // --- Ban/unban handlers for users ---
   const handleBan = (userId) => {
     setBanDialogUser(userId);
     setBanType('permanent');
@@ -189,112 +197,42 @@ function ModeratorDashboard({ sessionId, user }) {
     }
   };
 
-  // Split questions into pending and approved
+  // --- Split questions into pending and approved ---
   const pendingQuestions = questions.filter(q => q.status !== 'approved');
   const approvedQuestions = questions.filter(q => q.status === 'approved');
 
+  // --- Render loading, error, and permission states ---
   if (checkingModerator) return <div>Checking permissions...</div>;
   if (!isEventModerator) return <div>Access denied: You are not a moderator for this event.</div>;
   if (unauthorized) return <div>Unauthorized</div>;
   if (loading) return <div>Loading...</div>;
   if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
+  // --- Rendered UI ---
   return (
-    <div>
+    <div className="container py-4">
       <h2>Moderator Dashboard</h2>
-      {/* Event Controls */}
-      <div style={{ marginBottom: 24 }}>
-        <button onClick={handleStartEvent}>Start New Event</button>
-        {eventLoading ? (
-          <span>Loading events...</span>
-        ) : eventError ? (
-          <span style={{ color: 'red' }}>{eventError}</span>
-        ) : (
-          <>
-            <h4>Existing Events</h4>
-            <ul>
-              {events.map(ev => (
-                <li key={ev.id}>
-                  <b>{ev.name}</b> (ID: {ev.id})
-                  <button onClick={() => handleAccessEvent(ev.id)} style={{ marginLeft: 8 }}>Access</button>
-                  <button onClick={() => handleCloseEvent(ev.id)} style={{ marginLeft: 8 }}>Close</button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
-      <h3>Incoming Questions</h3>
-      {pendingQuestions.length === 0 ? (
-        <div>No new questions.</div>
-      ) : (
-        <ul>
-          {pendingQuestions.map(q => (
-            <li key={q.id}>
-              <input
-                type="checkbox"
-                checked={selected.includes(q.id)}
-                onChange={e => {
-                  setSelected(sel =>
-                    e.target.checked ? [...sel, q.id] : sel.filter(id => id !== q.id)
-                  );
-                }}
-                aria-label={`select-question-${q.id}`}
-              />
-              <span>{q.text}</span>
-              <button onClick={() => handleAction(q.id, 'approve')}>Approve</button>
-              <button onClick={() => handleAction(q.id, 'delete')}>Delete</button>
-              <button onClick={() => handleAction(q.id, 'flag')}>Flag</button>
-              <button className="btn btn-danger btn-sm ms-2" onClick={() => handleBan(q.user_id)} disabled={banning}>Ban User</button>
-              <button className="btn btn-warning btn-sm ms-2" onClick={() => handleUnban(q.user_id)} disabled={banning}>Unban User</button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <button onClick={handleMerge} disabled={selected.length < 2}>Merge Selected</button>
-      <button onClick={handleSynthesis}>Trigger Synthesis</button>
-      {synthResult && <div data-testid="synth-result">{synthResult}</div>}
-      <h3>Curated (Approved) Questions</h3>
-      {approvedQuestions.length === 0 ? (
-        <div>No approved questions yet.</div>
-      ) : (
-        <ul>
-          {approvedQuestions.map(q => (
-            <li key={q.id}>{q.text}</li>
-          ))}
-        </ul>
-      )}
-      {/* Ban dialog */}
+      {/* Pending questions list and actions */}
+      <ModeratorQuestionList questions={pendingQuestions} selected={selected} setSelected={setSelected} onAction={handleAction} />
+      {/* Merge and synthesize controls */}
+      <button className="btn btn-secondary btn-sm me-2" onClick={handleMerge} disabled={selected.length < 2}>Merge Selected</button>
+      <button className="btn btn-info btn-sm" onClick={handleSynthesis}>Trigger Synthesis</button>
+      {/* Show synthesis result if available */}
+      {synthResult && <div data-testid="synth-result" className="alert alert-info mt-2">{synthResult}</div>}
+      {/* Approved questions list */}
+      <ModeratorApprovedList questions={approvedQuestions} />
+      {/* Ban dialog for user moderation */}
       {banDialogUser && (
-        <div className="modal show" style={{ display: 'block', background: 'rgba(0,0,0,0.3)' }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Ban User: {banDialogUser}</h5>
-                <button type="button" className="btn-close" onClick={() => setBanDialogUser(null)}></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-2">
-                  <label className="form-label">Ban Type:</label>
-                  <select className="form-select" value={banType} onChange={e => setBanType(e.target.value)}>
-                    <option value="permanent">Permanent</option>
-                    <option value="temporary">Temporary</option>
-                  </select>
-                </div>
-                {banType === 'temporary' && (
-                  <div className="mb-2">
-                    <label className="form-label">Duration (hours):</label>
-                    <input type="number" className="form-control" value={banDuration} onChange={e => setBanDuration(e.target.value)} min="1" />
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-secondary" onClick={() => setBanDialogUser(null)} disabled={banning}>Cancel</button>
-                <button className="btn btn-danger" onClick={handleBanSubmit} disabled={banning || (banType === 'temporary' && !banDuration)}>Ban</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ModeratorBanDialog
+          userId={banDialogUser}
+          banType={banType}
+          banDuration={banDuration}
+          setBanType={setBanType}
+          setBanDuration={setBanDuration}
+          onCancel={() => setBanDialogUser(null)}
+          onSubmit={handleBanSubmit}
+          banning={banning}
+        />
       )}
     </div>
   );
