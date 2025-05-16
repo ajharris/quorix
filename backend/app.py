@@ -3,7 +3,7 @@ from flask_migrate import Migrate
 from dotenv import load_dotenv
 import os
 import subprocess
-from backend.routes.api_routes import routes, sessions, questions
+from backend.routes.api_routes import routes, sessions, questions, register_oauth
 from backend.models.db import db
 
 # Load .env from project root
@@ -11,6 +11,8 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key')  # Set a secret key for session support
+
+register_oauth(app)
 
 # Use SQLALCHEMY_DATABASE_URI for Flask-SQLAlchemy compatibility
 # Accept both QUORIX_DATABASE_URI and SQLALCHEMY_DATABASE_URI for flexibility

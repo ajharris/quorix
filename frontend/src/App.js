@@ -53,6 +53,7 @@ function App() {
   return (
     <Router>
       <NavBar user={user} onLogin={handleLogin} onLogout={handleLogout} />
+      {message && <div>{message}</div>}
       {user && user.role === 'admin' && (
         <div style={{ position: 'fixed', top: 0, right: 0, background: '#eee', padding: 8, zIndex: 1000 }}>
           <b>Admin View Switcher:</b>
