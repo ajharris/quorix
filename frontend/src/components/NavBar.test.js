@@ -22,7 +22,7 @@ describe('NavBar', () => {
     render(<NavBar user={null} onLogin={onLogin} onLogout={onLogout} />);
     fireEvent.click(screen.getByRole('button', { name: /^login$/i }));
     expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/session code/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/password/i)).toBeInTheDocument();
     expect(screen.getByText(/or login with/i)).toBeInTheDocument();
   });
 
@@ -52,7 +52,7 @@ describe('NavBar', () => {
     render(<NavBar user={null} onLogin={onLogin} onLogout={onLogout} />);
     fireEvent.click(screen.getByRole('button', { name: /^login$/i }));
     fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText(/session code/i), { target: { value: 'code123' } });
+    fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'code123' } });
     fireEvent.click(screen.getAllByRole('button', { name: /^login$/i })[1]);
     await waitFor(() => expect(onLogin).toHaveBeenCalledWith({ email: 'user@example.com', role: 'attendee' }));
   });
@@ -65,7 +65,7 @@ describe('NavBar', () => {
     render(<NavBar user={null} onLogin={onLogin} onLogout={onLogout} />);
     fireEvent.click(screen.getByRole('button', { name: /^login$/i }));
     fireEvent.change(screen.getByPlaceholderText(/email/i), { target: { value: 'bad@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText(/session code/i), { target: { value: 'badcode' } });
+    fireEvent.change(screen.getByPlaceholderText(/password/i), { target: { value: 'badcode' } });
     fireEvent.click(screen.getAllByRole('button', { name: /^login$/i })[1]);
     expect(await screen.findByText(/invalid credentials/i)).toBeInTheDocument();
   });
