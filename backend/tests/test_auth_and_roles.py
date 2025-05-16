@@ -7,6 +7,7 @@ USERS = {
     ('user@example.com', 'valid123'): {'role': 'attendee'},
     ('mod@example.com', 'validmod'): {'role': 'moderator'},
     ('org@example.com', 'validorg'): {'role': 'organizer'},
+    ('spk@example.com', 'validspk'): {'role': 'speaker'},
 }
 SSO_TOKENS = {
     'valid-sso-token': {'role': 'moderator'},
@@ -120,7 +121,7 @@ def test_role_assignment_after_login(client):
     })
     assert resp.status_code == 200
     data = resp.get_json()
-    assert data['role'] in ['attendee', 'moderator', 'organizer']
+    assert data['role'] in ['attendee', 'moderator', 'organizer', 'speaker']
 
 def test_dashboard_access_moderator(client):
     # Simulate login as moderator
@@ -142,6 +143,13 @@ def test_dashboard_access_attendee_forbidden(client):
     assert resp.status_code == 403
     assert b'access denied' in resp.data
 
+def test_dashboard_access_speaker_forbidden(client):
+    with client.session_transaction() as sess:
+        sess['role'] = 'speaker'
+    resp = client.get('/moderator/dashboard')
+    assert resp.status_code == 403
+    assert b'access denied' in resp.data
+
 def test_dashboard_access_unauthenticated_redirect(client):
     resp = client.get('/moderator/dashboard', follow_redirects=False)
     assert resp.status_code in (302, 401, 403)
@@ -149,6 +157,13 @@ def test_dashboard_access_unauthenticated_redirect(client):
 def test_attendee_forbidden_from_organizer_views(client):
     with client.session_transaction() as sess:
         sess['role'] = 'attendee'
+    resp = client.get('/organizer/only')
+    assert resp.status_code == 403
+    assert b'access denied' in resp.data
+
+def test_speaker_forbidden_from_organizer_views(client):
+    with client.session_transaction() as sess:
+        sess['role'] = 'speaker'
     resp = client.get('/organizer/only')
     assert resp.status_code == 403
     assert b'access denied' in resp.data

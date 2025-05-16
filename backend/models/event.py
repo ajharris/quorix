@@ -12,6 +12,9 @@ class Event(db.Model):
     description = db.Column(db.Text, default='')
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+    # --- Relationship to UserEventRole ---
+    user_roles = db.relationship('UserEventRole', backref='event', lazy='dynamic')
+
     def __init__(self, title, start_time, description='', created_at=None):
         """
         Initialize a new Event instance.
