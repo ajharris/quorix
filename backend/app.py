@@ -3,7 +3,8 @@ from flask_migrate import Migrate
 from dotenv import load_dotenv
 import os
 import subprocess
-from backend.routes.api_routes import routes, sessions, questions, register_oauth
+from backend.routes import register_all_routes
+from backend.routes.oauth import register_oauth
 from backend.models.db import db
 
 # Load .env from project root
@@ -42,8 +43,7 @@ print("Loaded SQLALCHEMY_DATABASE_URI:", app.config['SQLALCHEMY_DATABASE_URI'])
 db.init_app(app)
 migrate = Migrate(app, db)
 
-# Register routes blueprint
-app.register_blueprint(routes)
+register_all_routes(app)
 
 # Serve React's static files
 @app.route('/')
@@ -58,6 +58,9 @@ def serve_react(path=''):
         return send_from_directory(app.static_folder, os.path.relpath(full_path, app.static_folder))
     else:
         return send_from_directory(app.static_folder, 'index.html')
+
+# Re-export in-memory demo data for test compatibility
+from backend.routes.question_routes import questions
 
 # Only build frontend if running as main app, not during import (e.g., for tests)
 if __name__ == '__main__':
