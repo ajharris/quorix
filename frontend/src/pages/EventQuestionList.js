@@ -42,6 +42,9 @@ function EventQuestionList({ sessionId }) {
       {sortedQuestions.map((q) => (
         <li key={q.id} role="listitem" className="list-group-item">
           <strong>{getInitials(q.user)}:</strong> {q.text}
+          {q.status && (
+            <span className="ms-2 badge bg-info text-dark" data-testid="status">({q.status})</span>
+          )}
           <br />
           <small className="text-muted">{new Date(q.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' })}</small>
         </li>
