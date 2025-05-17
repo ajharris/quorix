@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import EventQuestionList from './EventQuestionList';
 
@@ -14,24 +14,39 @@ describe('EventQuestionList', () => {
     jest.clearAllMocks();
   });
 
-  it('renders questions with status if present', () => {
-    render(<EventQuestionList sessionId="demo" />);
-    // Simulate state update
-    // Directly set questions state is not possible, so we test rendering logic below
-    // Instead, we test the rendering logic in isolation
-    // This is a placeholder for a more advanced test setup (e.g., using MSW or refactoring for testability)
+  it('renders questions with status if present', async () => {
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(baseQuestions) }));
+    await act(async () => {
+      render(<EventQuestionList sessionId="demo" />);
+    });
+    // Wait for all questions to appear
+    for (const q of baseQuestions) {
+      expect(await screen.findByText(q.text)).toBeInTheDocument();
+      if (q.status) {
+        expect(screen.getByText(new RegExp(`\\(${q.status}\\)`, 'i'))).toBeInTheDocument();
+      }
+    }
+    // Should show all statuses
+    expect(screen.getAllByTestId('status').length).toBe(3);
+    expect(screen.getByText(/pending/i)).toBeInTheDocument();
+    expect(screen.getByText(/approved/i)).toBeInTheDocument();
+    expect(screen.getByText(/rejected/i)).toBeInTheDocument();
   });
 
-  it('shows empty state if no questions', () => {
+  it('shows empty state if no questions', async () => {
     // Patch fetch to return empty array
     global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve([]) }));
-    render(<EventQuestionList sessionId="demo" />);
+    await act(async () => {
+      render(<EventQuestionList sessionId="demo" />);
+    });
     // Should not throw
   });
 
   it('shows error if fetch fails', async () => {
     global.fetch = jest.fn(() => Promise.reject(new Error('fail')));
-    render(<EventQuestionList sessionId="demo" />);
+    await act(async () => {
+      render(<EventQuestionList sessionId="demo" />);
+    });
     // Should not throw
   });
 

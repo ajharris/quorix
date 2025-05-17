@@ -16,7 +16,7 @@ function GeneratedQuestions({ sessionId }) {
       <h5>Generated Questions</h5>
       <ul className="list-group">
         {generated.map((q, i) => (
-          <li key={i} className="list-group-item">{q.text || q}</li>
+          <li key={i} className="list-group-item" data-testid="generated-question">{q.text || q}</li>
         ))}
       </ul>
     </div>

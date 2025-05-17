@@ -1,8 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import EventLandingPage from './EventLandingPage';
-import { act } from 'react';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
