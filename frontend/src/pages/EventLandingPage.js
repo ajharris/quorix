@@ -4,6 +4,7 @@ import QRCodeImage from '../components/QRCodeImage';
 import EventQuestionForm from './EventQuestionForm';
 import EventQuestionList from './EventQuestionList';
 import GeneratedQuestions from './GeneratedQuestions';
+import EventChat from './EventChat';
 
 // --- EventLandingPage Component ---
 // This page displays a list of available events, allows users to select an event,
@@ -79,9 +80,10 @@ function EventLandingPage() {
               </div>
             </>
           )}
-          {/* Show question form and list for attendees */}
+          {/* Show question form, chat, and list for attendees */}
           {user.role === 'attendee' && (
             <>
+              <EventChat user={user} eventId={selectedEvent.session_id} />
               <EventQuestionForm user={user} sessionId={selectedEvent.session_id} />
               <EventQuestionList sessionId={selectedEvent.session_id} />
               <GeneratedQuestions sessionId={selectedEvent.session_id} />

@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime, timezone
-from models.question import Question
+from backend.models.question import Question
 
 # 1. Database Schema Tests
 
