@@ -112,6 +112,17 @@ function App({ initialUser, initialSession }) {
                 <AdminQuestionsView />
               </div>
             )}
+            {effectiveRole === 'speaker' && session && (
+              <div>
+                <h2>Speaker Dashboard</h2>
+                <p>Embed the approved questions in your presentation using the following URL:</p>
+                <pre style={{background:'#f4f4f4', padding:'8px', borderRadius:'4px'}}>
+                  {window.location.origin + `/speaker/embed/${session.session_id}`}
+                </pre>
+                <p>Share this link in your slides or browser source to show live approved questions.</p>
+                <SpeakerView sessionId={session.session_id} user={user} showNavigation={true} />
+              </div>
+            )}
           </div>
         } />
       </Routes>
