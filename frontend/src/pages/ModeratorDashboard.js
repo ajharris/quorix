@@ -24,6 +24,17 @@ function ModeratorDashboard({ sessionId, user }) {
   const [banType, setBanType] = useState('permanent');
   const [banDuration, setBanDuration] = useState('');
   const [banning, setBanning] = useState(false);
+  const [eventMeta, setEventMeta] = useState(null);
+  const [eventMetaLoading, setEventMetaLoading] = useState(true);
+  const [eventMetaError, setEventMetaError] = useState('');
+  const [links, setLinks] = useState([]);
+  const [linksLoading, setLinksLoading] = useState(true);
+  const [linksError, setLinksError] = useState('');
+  // --- State for posting new link ---
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newLinkTitle, setNewLinkTitle] = useState('');
+  const [postingLink, setPostingLink] = useState(false);
+  const [postLinkError, setPostLinkError] = useState('');
 
   // --- Check if user is moderator for this event ---
   useEffect(() => {
@@ -83,6 +94,67 @@ function ModeratorDashboard({ sessionId, user }) {
         setEventLoading(false);
       });
   }, []);
+
+  // Fetch event metadata
+  useEffect(() => {
+    if (!sessionId) return;
+    setEventMetaLoading(true);
+    fetch(`/api/session/${sessionId}`)
+      .then(res => res.ok ? res.json() : Promise.reject('Failed to load event metadata'))
+      .then(data => {
+        setEventMeta(data);
+        setEventMetaLoading(false);
+      })
+      .catch(() => {
+        setEventMetaError('Could not load event metadata.');
+        setEventMetaLoading(false);
+      });
+  }, [sessionId]);
+
+  // Fetch moderator-published links
+  useEffect(() => {
+    if (!sessionId) return;
+    setLinksLoading(true);
+    fetch(`/api/mod/links/${sessionId}`)
+      .then(res => res.ok ? res.json() : Promise.reject('Failed to load links'))
+      .then(data => {
+        setLinks(Array.isArray(data) ? data : []);
+        setLinksLoading(false);
+      })
+      .catch(() => {
+        setLinksError('Could not load links.');
+        setLinksLoading(false);
+      });
+  }, [sessionId]);
+
+  // --- Handler for posting a new link ---
+  const handlePostLink = async (e) => {
+    e.preventDefault();
+    setPostLinkError('');
+    if (!newLinkUrl) {
+      setPostLinkError('URL is required.');
+      return;
+    }
+    setPostingLink(true);
+    try {
+      const res = await fetch(`/api/mod/links/${sessionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: newLinkUrl, title: newLinkTitle, published_by: user?.name || user?.email || 'moderator' })
+      });
+      if (!res.ok) throw new Error('api');
+      setNewLinkUrl('');
+      setNewLinkTitle('');
+      // Refresh links after posting
+      fetch(`/api/mod/links/${sessionId}`)
+        .then(res => res.ok ? res.json() : [])
+        .then(data => setLinks(Array.isArray(data) ? data : []));
+    } catch {
+      setPostLinkError('Failed to post link.');
+    } finally {
+      setPostingLink(false);
+    }
+  };
 
   // --- Handlers for moderator actions (approve, delete, merge, synthesize, ban, unban) ---
   const handleAction = async (id, action) => {
@@ -212,6 +284,66 @@ function ModeratorDashboard({ sessionId, user }) {
   return (
     <div className="container py-4">
       <h2>Moderator Dashboard</h2>
+      {/* Event metadata section */}
+      <div className="mb-4">
+        {eventMetaLoading ? (
+          <div>Loading event info...</div>
+        ) : eventMetaError ? (
+          <div className="alert alert-danger">{eventMetaError}</div>
+        ) : eventMeta ? (
+          <div>
+            <h4>{eventMeta.title}</h4>
+            <div><strong>Time:</strong> {eventMeta.start_time ? new Date(eventMeta.start_time).toLocaleString() : ''}</div>
+            <div><strong>Description:</strong> {eventMeta.description}</div>
+          </div>
+        ) : null}
+      </div>
+      {/* Moderator-published links section */}
+      <div className="mb-4">
+        <h5>Links Published by Moderators</h5>
+        {/* Form to post a new link */}
+        <form className="mb-3" onSubmit={handlePostLink} style={{ maxWidth: 500 }}>
+          <div className="input-group mb-2">
+            <input
+              type="url"
+              className="form-control"
+              placeholder="Paste link URL (https://...)"
+              value={newLinkUrl}
+              onChange={e => setNewLinkUrl(e.target.value)}
+              required
+              disabled={postingLink}
+            />
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Optional title"
+              value={newLinkTitle}
+              onChange={e => setNewLinkTitle(e.target.value)}
+              disabled={postingLink}
+            />
+            <button className="btn btn-primary" type="submit" disabled={postingLink || !newLinkUrl}>Post</button>
+          </div>
+          {postLinkError && <div className="text-danger small">{postLinkError}</div>}
+        </form>
+        {linksLoading ? (
+          <div>Loading links...</div>
+        ) : linksError ? (
+          <div className="alert alert-danger">{linksError}</div>
+        ) : links.length === 0 ? (
+          <div>No links published yet.</div>
+        ) : (
+          <ul className="list-group">
+            {links.map(link => (
+              <li key={link.url} className="list-group-item">
+                <a href={link.url} target="_blank" rel="noopener noreferrer">{link.title || link.url}</a>
+                {link.published_by && (
+                  <span className="text-muted ms-2">(by {link.published_by})</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       {/* Pending questions list and actions */}
       <ModeratorQuestionList questions={pendingQuestions} selected={selected} setSelected={setSelected} onAction={handleAction} />
       {/* Merge and synthesize controls */}
