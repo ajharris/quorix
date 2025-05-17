@@ -40,10 +40,10 @@ cd backend
 source ../venv/bin/activate
 REQUIREMENTS_HASH=.requirements.hash
 # Always install if Flask is missing, even if hash matches
-if [ ! -f "$REQUIREMENTS_HASH" ] || ! cmp -s requirements.txt $REQUIREMENTS_HASH || ! python -c "import flask" 2>/dev/null; then
+if [ ! -f "$REQUIREMENTS_HASH" ] || ! cmp -s ../requirements.txt $REQUIREMENTS_HASH || ! python -c "import flask" 2>/dev/null; then
   echo "Installing backend dependencies..."
-  pip install -r requirements.txt
-  cp requirements.txt $REQUIREMENTS_HASH
+  pip install -r ../requirements.txt
+  cp ../requirements.txt $REQUIREMENTS_HASH
 else
   echo "Backend dependencies are up to date."
 fi
