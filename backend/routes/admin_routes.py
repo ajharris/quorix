@@ -53,15 +53,15 @@ def admin_list_questions():
     event_id = request.args.get('event_id')
     q = Question.query
     if event_id:
-        q = q.filter_by(event_id=event_id)
+        q = q.filter_by(session_id=event_id)  # FIX: use session_id, not event_id
     questions = q.all()
     result = []
     for qu in questions:
-        event = Event.query.get(qu.event_id)
+        event = Event.query.get(qu.session_id)  # FIX: use session_id, not event_id
         user = User.query.get(qu.user_id)
         result.append({
             **qu.to_dict(),
-            'event_title': event.title if event else qu.event_id,
+            'event_title': event.title if event else qu.session_id,  # FIX: use session_id
             'user_name': user.name if user else qu.user_id
         })
     return jsonify(result)

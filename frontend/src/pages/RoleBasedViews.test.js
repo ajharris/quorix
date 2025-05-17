@@ -52,7 +52,7 @@ function renderAppWithRole(role, extraUser = {}, initialSession = null) {
     return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
   });
   // Render App with user and optional initialSession
-  const user = { email: `${role}@example.com`, role, ...extraUser };
+  const user = { id: 42, email: `${role}@example.com`, role, ...extraUser };
   return render(<App initialUser={user} initialSession={initialSession} />);
 }
 
@@ -73,6 +73,7 @@ describe('Role-Based Views Integration', () => {
   it('renders moderator dashboard with moderation controls', async () => {
     window.history.pushState({}, '', '/moderator/demo');
     renderAppWithRole('moderator');
+    // Wait for dashboard to appear (not just loading)
     expect(await screen.findByText(/Moderator Dashboard/)).toBeInTheDocument();
     expect(await screen.findByText(/Links Published by Moderators/)).toBeInTheDocument();
     expect(await screen.findByText(/Pending Questions/)).toBeInTheDocument();
@@ -85,24 +86,42 @@ describe('Role-Based Views Integration', () => {
     renderAppWithRole('organizer', {}, session);
     expect(await screen.findByText(/Organizer Dashboard/)).toBeInTheDocument();
     expect(await screen.findByText(/Event:/)).toBeInTheDocument();
-    expect(await screen.findByText(/QR code/i)).toBeInTheDocument();
+    // Check for QR code image by alt text
+    expect(await screen.findByAltText(/Event QR Code/i)).toBeInTheDocument();
   });
 
-  it('renders speaker view with navigation and fullscreen question', () => {
+  it('renders speaker view with navigation and fullscreen question', async () => {
+    // Patch fetch to return approved questions for the speaker endpoint
+    global.fetch = jest.fn((url) => {
+      if (url.includes('/api/speaker/questions/demo')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            { id: 1, text: 'What is the future of AI in events?', status: 'approved' },
+            { id: 2, text: 'How do you handle privacy concerns?', status: 'approved' },
+            { id: 3, text: 'What are the next steps for Quorix?', status: 'approved' },
+          ]),
+        });
+      }
+      // fallback to default mock
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+    });
     render(<SpeakerView sessionId="demo" user={{ email: 'speaker@example.com', role: 'speaker' }} onLogin={jest.fn()} onLogout={jest.fn()} />);
-    expect(screen.getByText('What is the future of AI in events?')).toBeInTheDocument();
+    expect(await screen.findByText('What is the future of AI in events?')).toBeInTheDocument();
     expect(screen.getByText(/Question 1 of 3/)).toBeInTheDocument();
     fireEvent.click(screen.getByText('Next'));
-    expect(screen.getByText('How do you handle privacy concerns?')).toBeInTheDocument();
+    expect(await screen.findByText('How do you handle privacy concerns?')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Previous'));
-    expect(screen.getByText('What is the future of AI in events?')).toBeInTheDocument();
+    expect(await screen.findByText('What is the future of AI in events?')).toBeInTheDocument();
   });
 
   it('shows admin view with user and question management', async () => {
     window.history.pushState({}, '', '/');
     const session = { session_id: 'demo', title: 'Demo Event', description: 'Demo event for QR code display.' };
     renderAppWithRole('admin', {}, session);
-    expect(await screen.findByText(/Admin View/)).toBeInTheDocument();
+    // Use findAllByText to avoid duplicate match error
+    const adminHeadings = await screen.findAllByText(/Admin View/);
+    expect(adminHeadings.length).toBeGreaterThan(0);
     expect(await screen.findByText(/User Management/)).toBeInTheDocument();
     expect(await screen.findByText(/All Questions/)).toBeInTheDocument();
   });

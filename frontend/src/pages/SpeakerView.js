@@ -3,21 +3,50 @@ import NavBar from '../components/NavBar';
 
 // SpeakerView: Shows one approved question at a time, fullscreen, with navigation
 function SpeakerView({ sessionId, user, onLogin, onLogout }) {
-  // For now, use mocked data. Replace with API call when backend is ready.
-  const [questions, setQuestions] = useState([
-    { id: 1, text: 'What is the future of AI in events?', status: 'approved' },
-    { id: 2, text: 'How do you handle privacy concerns?', status: 'approved' },
-    { id: 3, text: 'What are the next steps for Quorix?', status: 'approved' },
-  ]);
+  // Fetch approved questions for this event/session
+  const [questions, setQuestions] = useState([]);
   const [current, setCurrent] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // TODO: Replace with polling/fetch for live approved questions
+  // Poll for approved questions every 3s
   useEffect(() => {
-    // Example: fetch(`/api/speaker/questions/${sessionId}`)
-    //   .then(res => res.ok ? res.json() : [])
-    //   .then(data => setQuestions(data));
+    if (!sessionId) return;
+    setLoading(true);
+    setError('');
+    const fetchQuestions = () => {
+      fetch(`/api/speaker/questions/${sessionId}`)
+        .then(res => res.ok ? res.json() : Promise.reject('Failed to load questions'))
+        .then(data => {
+          setQuestions(Array.isArray(data) ? data : []);
+          setLoading(false);
+        })
+        .catch(() => {
+          setError('Could not load questions.');
+          setLoading(false);
+        });
+    };
+    fetchQuestions();
+    const interval = setInterval(fetchQuestions, 3000);
+    return () => clearInterval(interval);
   }, [sessionId]);
 
+  if (loading) return (
+    <>
+      <NavBar user={user} onLogin={onLogin} onLogout={onLogout} />
+      <div className="d-flex align-items-center justify-content-center vh-100">
+        <h2>Loading...</h2>
+      </div>
+    </>
+  );
+  if (error) return (
+    <>
+      <NavBar user={user} onLogin={onLogin} onLogout={onLogout} />
+      <div className="d-flex align-items-center justify-content-center vh-100">
+        <h2 style={{ color: 'red' }}>{error}</h2>
+      </div>
+    </>
+  );
   if (!questions.length) return (
     <>
       <NavBar user={user} onLogin={onLogin} onLogout={onLogout} />

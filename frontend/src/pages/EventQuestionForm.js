@@ -50,6 +50,7 @@ function EventQuestionForm({ user, sessionId, onSuccess }) {
         rows={3}
         className="form-control mb-2"
         disabled={submitting}
+        placeholder="Type your question..."
       />
       <button type="submit" className="btn btn-primary" disabled={submitting}>
         Submit
