@@ -7,6 +7,7 @@ import NavBar from './components/NavBar';
 import AdminUserManagement from './components/AdminUserManagement'; // Import the new component
 import AdminQuestionsView from './components/AdminQuestionsView';
 import SpeakerView from './pages/SpeakerView';
+import SpeakerEmbedView from './pages/SpeakerEmbedView';
 
 function App({ initialUser, initialSession }) {
   const [message, setMessage] = useState('');
@@ -40,10 +41,29 @@ function App({ initialUser, initialSession }) {
 
   // Simulate login state (replace with real auth in production)
   useEffect(() => {
-    // Example: fetch user info from backend or localStorage
-    // For now, hardcode as not logged in
+    if (initialUser) return; // Do not reset user if initialUser is provided (for tests)
     setUser(null); // or setUser({ role: 'organizer', name: 'Alice' })
-  }, []);
+  }, [initialUser]);
+
+  // Fetch current user session on mount (if not in test)
+  useEffect(() => {
+    if (initialUser) return; // Don't fetch if test user is provided
+    fetch('/api/session')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.user_id && data.role) {
+          setUser({
+            id: data.user_id,
+            email: data.email,
+            name: data.name,
+            role: data.role
+          });
+        } else {
+          setUser(null);
+        }
+      })
+      .catch(() => setUser(null));
+  }, [initialUser]);
 
   // Add login/logout handlers
   const handleLogin = (userObj) => setUser(userObj);
@@ -64,6 +84,7 @@ function App({ initialUser, initialSession }) {
             <option value="organizer">Organizer</option>
             <option value="moderator">Moderator</option>
             <option value="attendee">Attendee</option>
+            <option value="speaker">Speaker</option>
             <option value="">(Actual Role)</option>
           </select>
         </div>
@@ -72,6 +93,7 @@ function App({ initialUser, initialSession }) {
         <Route path="/session/:eventCode" element={<EventLandingPage />} />
         <Route path="/moderator/:sessionId" element={<ModeratorDashboardWrapper user={{...user, role: effectiveRole}} />} />
         <Route path="/speaker/:sessionId" element={<SpeakerViewWrapper user={user} onLogin={handleLogin} onLogout={handleLogout} />} />
+        <Route path="/speaker/embed/:eventId" element={<SpeakerEmbedViewWrapper />} />
         <Route path="/" element={
           <div>
             {/* Only show organizer dashboard if user is organizer */}
@@ -88,6 +110,17 @@ function App({ initialUser, initialSession }) {
                 <p>You are logged in as admin.</p>
                 <AdminUserManagement />
                 <AdminQuestionsView />
+              </div>
+            )}
+            {effectiveRole === 'speaker' && session && (
+              <div>
+                <h2>Speaker Dashboard</h2>
+                <p>Embed the approved questions in your presentation using the following URL:</p>
+                <pre style={{background:'#f4f4f4', padding:'8px', borderRadius:'4px'}}>
+                  {window.location.origin + `/speaker/embed/${session.session_id}`}
+                </pre>
+                <p>Share this link in your slides or browser source to show live approved questions.</p>
+                <SpeakerView sessionId={session.session_id} user={user} showNavigation={true} />
               </div>
             )}
           </div>
@@ -109,6 +142,12 @@ function SpeakerViewWrapper(props) {
   // Get user, onLogin, onLogout from App props/context
   // We'll pass them down from App
   return <SpeakerView sessionId={sessionId} user={props.user} onLogin={props.onLogin} onLogout={props.onLogout} />;
+}
+
+// Add wrapper for embed route
+function SpeakerEmbedViewWrapper() {
+  const { eventId } = require('react-router-dom').useParams();
+  return <SpeakerEmbedView eventId={eventId} />;
 }
 
 export default App;

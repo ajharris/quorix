@@ -182,10 +182,38 @@ def login_sso_callback(provider):
     session['role'] = 'attendee'
     return jsonify({'role': 'attendee', 'user_id': user_id, 'email': email, 'name': name})
 
-@auth_routes.route('/')
-def serve_root():
+@auth_routes.route('/api/session', methods=['GET'])
+def get_session():
     """
-    Serve a minimal static index.html for test/deployment checks.
-    This ensures the static file test passes even if the frontend build is missing.
+    Return the current user's session info (user_id, role, email, name if available).
+    Returns 200 with user info if logged in, else 401.
     """
-    return '<!DOCTYPE html><html><head><title>Quorix</title></head><body><h1>Quorix App</h1></body></html>', 200, {'Content-Type': 'text/html'}
+    user_id = session.get('user_id')
+    role = session.get('role')
+    if not user_id or not role:
+        return jsonify({'error': 'Not logged in'}), 401
+    # Try to get email/name if available
+    email = None
+    name = None
+    user_obj = None
+    # Try in-memory users dict first
+    if user_id in users:
+        user_obj = users[user_id]
+        if hasattr(user_obj, 'email'):
+            email = user_obj.email
+        elif isinstance(user_obj, dict):
+            email = user_obj.get('email')
+        if hasattr(user_obj, 'name'):
+            name = user_obj.name
+        elif isinstance(user_obj, dict):
+            name = user_obj.get('name')
+    # Fallback: just return user_id and role
+    return jsonify({'user_id': user_id, 'role': role, 'email': email, 'name': name}), 200
+
+# @auth_routes.route('/')
+# def serve_root():
+#     """
+#     Serve a minimal static index.html for test/deployment checks.
+#     This ensures the static file test passes even if the frontend build is missing.
+#     """
+#     return '<!DOCTYPE html><html><head><title>Quorix</title></head><body><h1>Quorix App</h1></body></html>', 200, {'Content-Type': 'text/html'}

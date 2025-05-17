@@ -76,3 +76,15 @@ def mod_question_action(question_id, action):
     if not is_event_moderator(user_id, event_id):
         return jsonify({'error': 'forbidden'}), 403
     # ...existing logic...
+
+# --- Speaker: Get Approved Questions for Event (for SpeakerView/Embed) ---
+@question_routes.route('/api/speaker/questions/<event_id>')
+def get_speaker_questions(event_id):
+    """
+    Return all approved questions for a given event_id (for speaker view/embed).
+    No authentication required (read-only, public for display).
+    """
+    approved = [q for q in questions if q.get('session_id') == event_id and q.get('status') == 'approved']
+    # Sort by timestamp ascending (oldest first)
+    approved.sort(key=lambda q: q.get('timestamp') or '')
+    return jsonify(approved)
