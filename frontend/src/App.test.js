@@ -1,4 +1,7 @@
 import React from 'react';
+import { render, screen, act } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import App from './App';
 
 globalThis.fetch = jest.fn(() =>
   Promise.resolve({
@@ -6,10 +9,6 @@ globalThis.fetch = jest.fn(() =>
     json: () => Promise.resolve({ message: 'Pong!' }),
   })
 );
-
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import App from './App';
 
 beforeEach(() => {
   global.fetch.mockClear();
