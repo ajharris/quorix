@@ -135,4 +135,6 @@ fi
 
 # Start backend server from project root for correct imports
 export DEMO_MODE=1
+# Ensure user site-packages are in PYTHONPATH for user installs (pip --user)
+export PYTHONPATH="$PYTHONPATH:/home/vscode/.local/lib/python3.11/site-packages"
 python -m backend.app

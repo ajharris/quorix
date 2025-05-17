@@ -41,18 +41,18 @@ with app.app_context():
 
     # Seed questions
     questions = [
-        Question(user_id=users[0].id, event_id=events[0].id, text='What is the schedule?', status='pending'),
-        Question(user_id=users[1].id, event_id=events[0].id, text='How do I join?', status='approved'),
-        Question(user_id=users[2].id, event_id=events[1].id, text='Is there a recording?', status='pending'),
+        Question(user_id=users[0].id, session_id=events[0].id, text='What is the schedule?', status='pending'),
+        Question(user_id=users[1].id, session_id=events[0].id, text='How do I join?', status='approved'),
+        Question(user_id=users[2].id, session_id=events[1].id, text='Is there a recording?', status='pending'),
     ]
     db.session.add_all(questions)
     db.session.commit()
 
     # Add more demo questions for filtering
     questions.extend([
-        Question(user_id=users[0].id, event_id=events[1].id, text='What is the location?', status='approved'),
-        Question(user_id=users[1].id, event_id=events[1].id, text='Will there be food?', status='pending'),
-        Question(user_id=users[2].id, event_id=events[0].id, text='Can I get a certificate?', status='approved'),
+        Question(user_id=users[0].id, session_id=events[1].id, text='What is the location?', status='approved'),
+        Question(user_id=users[1].id, session_id=events[1].id, text='Will there be food?', status='pending'),
+        Question(user_id=users[2].id, session_id=events[0].id, text='Can I get a certificate?', status='approved'),
     ])
     db.session.add_all(questions[3:])
     db.session.commit()

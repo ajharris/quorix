@@ -12,6 +12,9 @@ test_user_events = {}  # Not used here, but for reference
 users = {}  # Should be shared with auth_routes in a real app
 user_events = {}  # Should be shared with auth_routes in a real app
 
+# In-memory storage for moderator-published links per session
+moderator_links = {}  # { session_id: [ { 'url': ..., 'title': ..., 'published_by': ... }, ... ] }
+
 session_routes = Blueprint('session_routes', __name__)
 
 # --- User Events Route ---
@@ -91,3 +94,31 @@ def get_session(session_id):
     if not session_obj:
         return jsonify({'error': 'Session not found'}), 404
     return jsonify(session_obj)
+
+# --- Get Moderator-Published Links for an Event ---
+@session_routes.route('/api/mod/links/<session_id>', methods=['GET'])
+def get_moderator_links(session_id):
+    """
+    Return a list of links published by moderators for the given session/event.
+    Each link is a dict with 'url', 'title', and 'published_by'.
+    """
+    links = moderator_links.get(session_id, [])
+    return jsonify(links)
+
+@session_routes.route('/api/mod/links/<session_id>', methods=['POST'])
+def post_moderator_link(session_id):
+    """
+    Allow a moderator to publish a new link for the event.
+    Expects JSON: { 'url': ..., 'title': ..., 'published_by': ... }
+    """
+    data = request.get_json()
+    url = data.get('url')
+    title = data.get('title', '')
+    published_by = data.get('published_by', 'moderator')
+    if not url:
+        return jsonify({'error': 'Missing url'}), 400
+    link = {'url': url, 'title': title, 'published_by': published_by}
+    if session_id not in moderator_links:
+        moderator_links[session_id] = []
+    moderator_links[session_id].append(link)
+    return jsonify({'success': True, 'link': link}), 201
