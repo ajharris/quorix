@@ -52,7 +52,7 @@ function renderAppWithRole(role, extraUser = {}, initialSession = null) {
     return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
   });
   // Render App with user and optional initialSession
-  const user = { email: `${role}@example.com`, role, ...extraUser };
+  const user = { id: 42, email: `${role}@example.com`, role, ...extraUser };
   return render(<App initialUser={user} initialSession={initialSession} />);
 }
 
@@ -73,6 +73,7 @@ describe('Role-Based Views Integration', () => {
   it('renders moderator dashboard with moderation controls', async () => {
     window.history.pushState({}, '', '/moderator/demo');
     renderAppWithRole('moderator');
+    // Wait for dashboard to appear (not just loading)
     expect(await screen.findByText(/Moderator Dashboard/)).toBeInTheDocument();
     expect(await screen.findByText(/Links Published by Moderators/)).toBeInTheDocument();
     expect(await screen.findByText(/Pending Questions/)).toBeInTheDocument();
@@ -85,7 +86,8 @@ describe('Role-Based Views Integration', () => {
     renderAppWithRole('organizer', {}, session);
     expect(await screen.findByText(/Organizer Dashboard/)).toBeInTheDocument();
     expect(await screen.findByText(/Event:/)).toBeInTheDocument();
-    expect(await screen.findByText(/QR code/i)).toBeInTheDocument();
+    // Check for QR code image by alt text
+    expect(await screen.findByAltText(/Event QR Code/i)).toBeInTheDocument();
   });
 
   it('renders speaker view with navigation and fullscreen question', () => {
@@ -102,7 +104,9 @@ describe('Role-Based Views Integration', () => {
     window.history.pushState({}, '', '/');
     const session = { session_id: 'demo', title: 'Demo Event', description: 'Demo event for QR code display.' };
     renderAppWithRole('admin', {}, session);
-    expect(await screen.findByText(/Admin View/)).toBeInTheDocument();
+    // Use findAllByText to avoid duplicate match error
+    const adminHeadings = await screen.findAllByText(/Admin View/);
+    expect(adminHeadings.length).toBeGreaterThan(0);
     expect(await screen.findByText(/User Management/)).toBeInTheDocument();
     expect(await screen.findByText(/All Questions/)).toBeInTheDocument();
   });
