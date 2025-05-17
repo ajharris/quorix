@@ -90,14 +90,29 @@ describe('Role-Based Views Integration', () => {
     expect(await screen.findByAltText(/Event QR Code/i)).toBeInTheDocument();
   });
 
-  it('renders speaker view with navigation and fullscreen question', () => {
+  it('renders speaker view with navigation and fullscreen question', async () => {
+    // Patch fetch to return approved questions for the speaker endpoint
+    global.fetch = jest.fn((url) => {
+      if (url.includes('/api/speaker/questions/demo')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([
+            { id: 1, text: 'What is the future of AI in events?', status: 'approved' },
+            { id: 2, text: 'How do you handle privacy concerns?', status: 'approved' },
+            { id: 3, text: 'What are the next steps for Quorix?', status: 'approved' },
+          ]),
+        });
+      }
+      // fallback to default mock
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+    });
     render(<SpeakerView sessionId="demo" user={{ email: 'speaker@example.com', role: 'speaker' }} onLogin={jest.fn()} onLogout={jest.fn()} />);
-    expect(screen.getByText('What is the future of AI in events?')).toBeInTheDocument();
+    expect(await screen.findByText('What is the future of AI in events?')).toBeInTheDocument();
     expect(screen.getByText(/Question 1 of 3/)).toBeInTheDocument();
     fireEvent.click(screen.getByText('Next'));
-    expect(screen.getByText('How do you handle privacy concerns?')).toBeInTheDocument();
+    expect(await screen.findByText('How do you handle privacy concerns?')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Previous'));
-    expect(screen.getByText('What is the future of AI in events?')).toBeInTheDocument();
+    expect(await screen.findByText('What is the future of AI in events?')).toBeInTheDocument();
   });
 
   it('shows admin view with user and question management', async () => {
