@@ -13,6 +13,7 @@ class Question(db.Model):
     text = db.Column(db.String(500), nullable=False)
     status = db.Column(db.String(32), default='pending', nullable=False)
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    exclude_from_ai = db.Column(db.Boolean, default=False, nullable=False)
 
     # --- Status and validation constants ---
     STATUS_VALUES = {'pending', 'approved', 'merged', 'deleted'}
@@ -44,7 +45,8 @@ class Question(db.Model):
             'session_id': self.session_id,
             'text': self.text,
             'status': self.status,
-            'timestamp': self.timestamp.isoformat() if self.timestamp else None
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'exclude_from_ai': getattr(self, 'exclude_from_ai', False)
         }
 
     @classmethod
