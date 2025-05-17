@@ -13,12 +13,16 @@ const mockUser = { id: 123, role: 'moderator', email: 'mod@example.com' };
 
 describe('ModeratorDashboard', () => {
   beforeEach(() => {
-    global.fetch = jest.fn();
+    jest.clearAllMocks();
+    // Default: always resolve fetch to avoid undefined
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve([]) }));
   });
 
   function mockInitialFetches(questions = sampleQuestions, {
     eventMeta = { title: 'Event Title', start_time: '2025-05-16T12:00:00Z', description: 'Event desc' },
-    links = []
+    links = [],
+    synthQuestions = [],
+    chatMessages = []
   } = {}) {
     global.fetch
       .mockResolvedValueOnce({
@@ -40,7 +44,15 @@ describe('ModeratorDashboard', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(links)
-      }); // links
+      }) // links
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(synthQuestions)
+      }) // synthesized questions
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(chatMessages)
+      }); // chat messages for EventChat
   }
 
   it('shows loading and then questions', async () => {
@@ -169,6 +181,8 @@ describe('ModeratorDashboard - Links Feature', () => {
     moderator = true,
     eventMeta = { title: 'Event Title', start_time: '2025-05-16T12:00:00Z', description: 'Event desc' },
     links = [],
+    synthQuestions = [],
+    chatMessages = []
   } = {}) {
     global.fetch = jest.fn()
       // Moderator check
@@ -195,11 +209,23 @@ describe('ModeratorDashboard - Links Feature', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(links)
+      })
+      // Synthesized questions fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(synthQuestions)
+      })
+      // Chat messages fetch for EventChat
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(chatMessages)
       });
   }
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default: always resolve fetch to avoid undefined
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve([]) }));
   });
 
   it('displays event metadata and published links', async () => {

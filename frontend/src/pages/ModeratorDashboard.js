@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import ModeratorBanDialog from './ModeratorBanDialog';
 import ModeratorQuestionList from './ModeratorQuestionList';
 import ModeratorApprovedList from './ModeratorApprovedList';
+import EventChat from './EventChat';
 
 // --- ModeratorDashboard Component ---
 // This page is for moderators to manage questions for a session/event.
@@ -35,6 +36,13 @@ function ModeratorDashboard({ sessionId, user }) {
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const [postingLink, setPostingLink] = useState(false);
   const [postLinkError, setPostLinkError] = useState('');
+
+  // --- State for synthesized questions ---
+  const [synthQuestions, setSynthQuestions] = useState([]);
+  const [synthLoading, setSynthLoading] = useState(false);
+  const [synthError, setSynthError] = useState('');
+  const [editingSynthId, setEditingSynthId] = useState(null);
+  const [editingSynthText, setEditingSynthText] = useState('');
 
   // --- Check if user is moderator for this event ---
   useEffect(() => {
@@ -127,6 +135,22 @@ function ModeratorDashboard({ sessionId, user }) {
       });
   }, [sessionId]);
 
+  // --- Fetch synthesized questions for approval ---
+  useEffect(() => {
+    if (!sessionId) return;
+    setSynthLoading(true);
+    fetch(`/api/mod/questions/synthesized/${sessionId}`)
+      .then(res => res.ok ? res.json() : Promise.reject('Failed to load synthesized questions'))
+      .then(data => {
+        setSynthQuestions(Array.isArray(data) ? data : []);
+        setSynthLoading(false);
+      })
+      .catch(() => {
+        setSynthError('Could not load synthesized questions.');
+        setSynthLoading(false);
+      });
+  }, [sessionId]);
+
   // --- Handler for posting a new link ---
   const handlePostLink = async (e) => {
     e.preventDefault();
@@ -194,6 +218,64 @@ function ModeratorDashboard({ sessionId, user }) {
     } catch {
       setError('Synthesis failed.');
     }
+  };
+
+  // Handler for toggling exclude_from_ai
+  const handleToggleExcludeFromAI = async (id, value) => {
+    try {
+      const res = await fetch(`/api/mod/question/${id}/exclude_from_ai`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exclude_from_ai: value })
+      });
+      if (!res.ok) throw new Error('api');
+      setQuestions(qs => qs.map(q => q.id === id ? { ...q, exclude_from_ai: value } : q));
+    } catch {
+      setError('Failed to update AI exclusion.');
+    }
+  };
+
+  // --- Handlers for approve/edit/reject synthesized questions ---
+  const handleApproveSynth = async (id) => {
+    try {
+      const res = await fetch(`/api/mod/questions/synthesized/${id}/approve`, { method: 'POST' });
+      if (!res.ok) throw new Error('api');
+      setSynthQuestions(qs => qs.filter(q => q.id !== id));
+    } catch {
+      setSynthError('Failed to approve synthesized question.');
+    }
+  };
+  const handleRejectSynth = async (id) => {
+    try {
+      const res = await fetch(`/api/mod/questions/synthesized/${id}/reject`, { method: 'POST' });
+      if (!res.ok) throw new Error('api');
+      setSynthQuestions(qs => qs.filter(q => q.id !== id));
+    } catch {
+      setSynthError('Failed to reject synthesized question.');
+    }
+  };
+  const handleEditSynth = (id, text) => {
+    setEditingSynthId(id);
+    setEditingSynthText(text);
+  };
+  const handleSaveSynthEdit = async (id) => {
+    try {
+      const res = await fetch(`/api/mod/questions/synthesized/${id}/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: editingSynthText })
+      });
+      if (!res.ok) throw new Error('api');
+      setSynthQuestions(qs => qs.map(q => q.id === id ? { ...q, text: editingSynthText } : q));
+      setEditingSynthId(null);
+      setEditingSynthText('');
+    } catch {
+      setSynthError('Failed to edit synthesized question.');
+    }
+  };
+  const handleCancelSynthEdit = () => {
+    setEditingSynthId(null);
+    setEditingSynthText('');
   };
 
   // --- Event handlers for event management (start, access, close) ---
@@ -344,8 +426,53 @@ function ModeratorDashboard({ sessionId, user }) {
           </ul>
         )}
       </div>
+      {/* Moderator Chat Section */}
+      <div className="mb-4">
+        <h5>Event Chat (Moderator View)</h5>
+        <EventChat user={user} eventId={sessionId} isModerator={true} />
+      </div>
+      {/* Synthesized questions for approval */}
+      <div className="mb-4">
+        <h5>AI-Synthesized Questions for Approval</h5>
+        {synthLoading ? (
+          <div>Loading synthesized questions...</div>
+        ) : synthError ? (
+          <div className="alert alert-danger">{synthError}</div>
+        ) : synthQuestions.length === 0 ? (
+          <div>No synthesized questions pending approval.</div>
+        ) : (
+          <ul className="list-group mb-3">
+            {synthQuestions.map(q => (
+              <li key={q.id} className="list-group-item d-flex justify-content-between align-items-center">
+                {editingSynthId === q.id ? (
+                  <>
+                    <input
+                      type="text"
+                      className="form-control me-2"
+                      value={editingSynthText}
+                      onChange={e => setEditingSynthText(e.target.value)}
+                      style={{ flex: 1 }}
+                    />
+                    <button className="btn btn-success btn-sm me-2" onClick={() => handleSaveSynthEdit(q.id)}>Save</button>
+                    <button className="btn btn-secondary btn-sm me-2" onClick={handleCancelSynthEdit}>Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <span>{q.text}</span>
+                    <div>
+                      <button className="btn btn-success btn-sm me-2" onClick={() => handleApproveSynth(q.id)}>Approve</button>
+                      <button className="btn btn-secondary btn-sm me-2" onClick={() => handleEditSynth(q.id, q.text)}>Edit</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleRejectSynth(q.id)}>Reject</button>
+                    </div>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       {/* Pending questions list and actions */}
-      <ModeratorQuestionList questions={pendingQuestions} selected={selected} setSelected={setSelected} onAction={handleAction} />
+      <ModeratorQuestionList questions={pendingQuestions} selected={selected} setSelected={setSelected} onAction={handleAction} onToggleExcludeFromAI={handleToggleExcludeFromAI} />
       {/* Merge and synthesize controls */}
       <button className="btn btn-secondary btn-sm me-2" onClick={handleMerge} disabled={selected.length < 2}>Merge Selected</button>
       <button className="btn btn-info btn-sm" onClick={handleSynthesis}>Trigger Synthesis</button>

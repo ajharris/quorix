@@ -77,6 +77,24 @@ def mod_question_action(question_id, action):
         return jsonify({'error': 'forbidden'}), 403
     # ...existing logic...
 
+# --- Moderator: Set Exclude from AI Flag ---
+@question_routes.route('/api/mod/question/<int:question_id>/exclude_from_ai', methods=['POST'])
+def set_exclude_from_ai(question_id):
+    """
+    Set the exclude_from_ai flag for a question (moderator only).
+    """
+    user_id = flask_session.get('user_id')
+    q = Question.query.get(question_id)
+    if not q:
+        return jsonify({'error': 'not found'}), 404
+    if not is_event_moderator(user_id, q.session_id):
+        return jsonify({'error': 'forbidden'}), 403
+    data = request.get_json() or {}
+    value = bool(data.get('exclude_from_ai', False))
+    q.exclude_from_ai = value
+    user_db.session.commit()
+    return jsonify({'success': True, 'exclude_from_ai': value})
+
 # --- Speaker: Get Approved Questions for Event (for SpeakerView/Embed) ---
 @question_routes.route('/api/speaker/questions/<event_id>')
 def get_speaker_questions(event_id):
