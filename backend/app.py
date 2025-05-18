@@ -10,7 +10,10 @@ from backend.models.db import db
 # Load .env from project root
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
-app = Flask(__name__)
+# Set static_folder to React build output for correct static file serving
+frontend_build_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'build')
+app = Flask(__name__, static_folder=frontend_build_dir, static_url_path='')
+
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key')  # Set a secret key for session support
 
 register_oauth(app)
@@ -47,21 +50,19 @@ register_all_routes(app)
 
 @app.route('/')
 def index():
-    frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'public')
-    return send_from_directory(frontend_dir, 'index.html')
+    return send_from_directory(frontend_build_dir, 'index.html')
 
 # Serve React's static files
 @app.route('/<path:path>')
 def serve_react(path=''):
-    index_path = os.path.join(app.static_folder, 'index.html')
-    full_path = os.path.normpath(os.path.join(app.static_folder, path))
+    index_path = os.path.join(frontend_build_dir, 'index.html')
+    full_path = os.path.normpath(os.path.join(frontend_build_dir, path))
     if not os.path.exists(index_path):
-        # Frontend build does not exist; return 404 or a simple message
         return ("Frontend not built. Please run 'npm run build' in the frontend directory.", 404)
-    if full_path.startswith(app.static_folder) and os.path.exists(full_path):
-        return send_from_directory(app.static_folder, os.path.relpath(full_path, app.static_folder))
+    if full_path.startswith(frontend_build_dir) and os.path.exists(full_path):
+        return send_from_directory(frontend_build_dir, os.path.relpath(full_path, frontend_build_dir))
     else:
-        return send_from_directory(app.static_folder, 'index.html')
+        return send_from_directory(frontend_build_dir, 'index.html')
 
 # Re-export in-memory demo data for test compatibility
 from backend.routes.question_routes import questions
