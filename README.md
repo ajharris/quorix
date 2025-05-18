@@ -2,63 +2,87 @@
 
 **Clarity from the Crowd**
 
-Quorix is a real-time audience intelligence app for corporate events and research seminars. It aims to replace chaotic Twitter walls and static word clouds with synthesized, moderator-ready questions that reflect the most pressing topics on attendees’ minds.
+Quorix is a real-time audience intelligence platform for corporate events and research seminars. It enables attendees to submit questions, moderators to manage and synthesize them, and speakers to view approved questions live. The system is designed for clarity, moderation, and actionable audience engagement.
 
 ---
 
-## Project Status
+## Features
 
-This project is in early development. The repository contains a backend (Flask) and a frontend (React) with initial structure, test files, and utility scripts. Core features are under construction.
-
-## Directory Structure
-
-- `backend/` – Flask backend with API routes, models, synthesis utilities, and tests
-- `frontend/` – React frontend with components, pages, and utilities
-- `create_issues.py` – Script for issue management
-- `run_tests.sh` – Shell script to run backend tests
-- `README.md` – Project documentation (this file)
-
-## Key Features (Planned)
-
-- 🔐 Attendee login via QR code and event ID
-- ✍️ Authenticated question submission tied to user identity
-- 🧠 AI-powered synthesis of similar questions using OpenAI
-- 🛡 Moderator tools for approving, merging, and filtering questions
-- 💬 Real-time extraction from Zoom, Microsoft Teams, and Google Meet chats
-- 📡 Auto-refreshing view of synthesized questions for on-stage use
+- **Attendee:**
+  - Register/login for events (QR code or event code)
+  - Submit questions (with timestamp and user ID)
+  - View all submitted questions and their statuses
+- **Moderator:**
+  - View, approve, delete, merge, and flag questions
+  - Exclude questions from AI synthesis
+  - Publish links and manage event chat
+  - Ban/unban users
+- **Speaker:**
+  - Fullscreen view of approved questions with navigation and dismiss controls
+- **Admin:**
+  - Manage users and events
+  - View all questions and filter by event
+- **AI Synthesis:**
+  - Cluster and synthesize similar questions for efficient moderation
+- **Testing:**
+  - Comprehensive backend (pytest) and frontend (Jest) test suites
 
 ## Tech Stack
 
-- **Frontend:** React (see `frontend/`)
-- **Backend:** Flask (see `backend/`)
-- **Auth:** Email + Event Code (planned)
-- **AI Integration:** OpenAI API (planned)
-- **Deployment:** Heroku, Render, or Docker (planned)
+- **Frontend:** React, Bootstrap, Jest
+- **Backend:** Flask, Flask-SQLAlchemy, Flask-Migrate, Gunicorn, pytest
+- **Database:** SQLite (demo), PostgreSQL (cloud/production)
+- **Auth:** Email-based (with roles: attendee, moderator, speaker, admin)
+- **AI Integration:** OpenAI (for question synthesis)
+- **Deployment:** Procfile for Gunicorn, ready for Heroku/Render/Docker
+
+## Directory Structure
+
+- `backend/` – Flask backend (API, models, routes, tests, migrations)
+- `frontend/` – React frontend (components, pages, build, tests)
+- `run_tests.sh` – Run all backend and frontend tests
+- `setup_and_start.sh` – Setup Python venv, install dependencies, and start backend
+- `Procfile` – Gunicorn entrypoint for deployment
+- `requirements.txt` – Top-level requirements
 
 ## Getting Started
 
-1. Clone the repository:
-   ```bash
-   git clone <repo-url>
-   cd quorix
-   ```
-2. (Optional) Initialize project structure:
-   ```bash
-   python init_quorix_structure.py
-   ```
-3. Set up the backend:
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   # To run tests:
-   ../run_tests.sh
-   ```
-4. Set up the frontend:
-   ```bash
-   cd ../frontend
-   npm install
-   npm start
-   ```
+### 1. Clone the repository
+```bash
+git clone <repo-url>
+cd quorix
+```
+
+### 2. Backend Setup
+```bash
+cd backend
+pip install -r requirements.txt
+# (Optional) Seed demo data:
+# python seed_demo_data.py
+```
+
+### 3. Frontend Setup
+```bash
+cd ../frontend
+npm install
+npm run build  # For production/static serving
+npm start      # For development
+```
+
+### 4. Running the App
+- Backend: `python backend/app.py` (or use `gunicorn backend.app:app` for production)
+- Frontend: `npm start` (development) or serve the `frontend/build` folder (production)
+
+### 5. Running All Tests
+```bash
+./run_tests.sh
+```
+- Runs backend tests (pytest) and frontend tests (Jest)
+
+## Usage
+- Visit the app in your browser (default: http://localhost:3000 for frontend, http://localhost:5001 for backend API)
+- Register/login as attendee, moderator, speaker, or admin
+- Attendees can submit questions; moderators manage and synthesize; speakers view approved questions
 
 ## Contributing
 
@@ -71,5 +95,3 @@ NONE
 ---
 
 Quorix: Clarity from the Crowd.
-# trigger rebuild
-# trigger rebuild
