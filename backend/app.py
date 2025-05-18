@@ -10,7 +10,7 @@ from backend.models.db import db
 # Load .env from project root
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
-app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
+app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key')  # Set a secret key for session support
 
 register_oauth(app)
@@ -45,8 +45,12 @@ migrate = Migrate(app, db)
 
 register_all_routes(app)
 
-# Serve React's static files
 @app.route('/')
+def index():
+    frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'public')
+    return send_from_directory(frontend_dir, 'index.html')
+
+# Serve React's static files
 @app.route('/<path:path>')
 def serve_react(path=''):
     index_path = os.path.join(app.static_folder, 'index.html')
