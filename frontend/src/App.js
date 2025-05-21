@@ -8,6 +8,10 @@ import AdminUserManagement from './components/AdminUserManagement'; // Import th
 import AdminQuestionsView from './components/AdminQuestionsView';
 import SpeakerView from './pages/SpeakerView';
 import SpeakerEmbedView from './pages/SpeakerEmbedView';
+import AdView from './pages/AdView';
+import SpeakerDashboard from './pages/SpeakerDashboard';
+import OrganizerDashboard from './pages/OrganizerDashboard';
+import RequireAuth from './components/RequireAuth';
 
 function App({ initialUser, initialSession }) {
   const [message, setMessage] = useState('');
@@ -90,7 +94,8 @@ function App({ initialUser, initialSession }) {
         </div>
       )}
       <Routes>
-        <Route path="/session/:eventCode" element={<EventLandingPage />} />
+        <Route path="/ad" element={<AdView />} />
+        <Route path="/session/:eventCode" element={<RequireAuth><EventLandingPage /></RequireAuth>} />
         <Route path="/moderator/:sessionId" element={<ModeratorDashboardWrapper user={{...user, role: effectiveRole}} />} />
         <Route path="/speaker/:sessionId" element={<SpeakerViewWrapper user={user} onLogin={handleLogin} onLogout={handleLogout} />} />
         <Route path="/speaker/embed/:eventId" element={<SpeakerEmbedViewWrapper />} />
@@ -98,11 +103,7 @@ function App({ initialUser, initialSession }) {
           <div>
             {/* Only show organizer dashboard if user is organizer */}
             {effectiveRole === 'organizer' && session && (
-              <div>
-                <h2>Organizer Dashboard</h2>
-                <p>Event: {session.session_id}</p>
-                <QRCodeImage sessionId={session.session_id} />
-              </div>
+              <OrganizerDashboard sessionId={session.session_id} user={user} />
             )}
             {effectiveRole === 'admin' && (
               <div>
@@ -110,6 +111,7 @@ function App({ initialUser, initialSession }) {
                 <p>You are logged in as admin.</p>
                 <AdminUserManagement />
                 <AdminQuestionsView />
+                {/* Admin can use the dropdown to view as any role and manage account statuses */}
               </div>
             )}
             {effectiveRole === 'speaker' && session && (
@@ -120,6 +122,7 @@ function App({ initialUser, initialSession }) {
                   {window.location.origin + `/speaker/embed/${session.session_id}`}
                 </pre>
                 <p>Share this link in your slides or browser source to show live approved questions.</p>
+                <SpeakerDashboard user={user} onLogin={handleLogin} onLogout={handleLogout} />
                 <SpeakerView sessionId={session.session_id} user={user} showNavigation={true} />
               </div>
             )}

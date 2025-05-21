@@ -60,14 +60,17 @@ describe('Role-Based Views Integration', () => {
   afterEach(() => { jest.clearAllMocks(); });
 
   it('renders attendee view with event info, chat, question form, and list', async () => {
+    localStorage.setItem('user_token', 'test'); // Ensure auth for RequireAuth
     window.history.pushState({}, '', '/session/demo');
     renderAppWithRole('attendee');
     expect(await screen.findByText(/Quorix/)).toBeInTheDocument();
-    expect(await screen.findByText(/Demo Event/)).toBeInTheDocument();
-    // The attendee view may require clicking the event to select it
-    fireEvent.click(screen.getByText(/Demo Event/));
+    // Click the event in the list if present
+    const eventItems = await screen.findAllByText(/Demo Event/);
+    fireEvent.click(eventItems[0]);
+    // Now check for event details in the chat view
     expect(await screen.findByText(/Event Chat/)).toBeInTheDocument();
     expect(await screen.findByPlaceholderText(/Type your question/i)).toBeInTheDocument();
+    localStorage.removeItem('user_token');
   });
 
   it('renders moderator dashboard with moderation controls', async () => {
@@ -85,7 +88,9 @@ describe('Role-Based Views Integration', () => {
     const session = { session_id: 'demo', title: 'Demo Event', description: 'Demo event for QR code display.' };
     renderAppWithRole('organizer', {}, session);
     expect(await screen.findByText(/Organizer Dashboard/)).toBeInTheDocument();
-    expect(await screen.findByText(/Event:/)).toBeInTheDocument();
+    // Use findAllByText for Demo Event and assert at least one exists
+    const demoEventHeadings = await screen.findAllByText(/Demo Event/);
+    expect(demoEventHeadings.length).toBeGreaterThan(0);
     // Check for QR code image by alt text
     expect(await screen.findByAltText(/Event QR Code/i)).toBeInTheDocument();
   });
