@@ -13,6 +13,11 @@ openai.api_key = os.getenv('OPENAI_API_KEY', 'sk-demo')
 # session_id -> {'questions': [...], 'summary': [...], 'last_update': timestamp}
 _synth_cache = {}
 
+# --- In-memory storage for approved/rejected synthesized questions ---
+# This would be a database table in a production app
+# Structure: {session_id: {question_id: {'text': '...', 'approved': True/False}}}
+_synth_approved = {}
+
 # --- Utility: Get Approved Questions ---
 def get_approved_questions(session_id, all_questions):
     """
@@ -77,8 +82,79 @@ def get_synthesized_questions(session_id, all_questions):
     summary = generate_synthesized_questions(clusters)
     if openai.api_key == 'sk-demo':
         summary = [f"Synthesized Q{i+1} ({random.randint(0,9999)})" for i in range(min(5, max(3, len(clusters))))]
-    _synth_cache[session_id] = {'questions': approved_ids, 'summary': summary}
-    return summary
+    
+    # Format questions as objects with IDs
+    formatted_summary = []
+    for i, question in enumerate(summary):
+        # Generate a stable ID for each question
+        question_id = f"{session_id}-synth-{i}"
+        formatted_summary.append({
+            'id': question_id,
+            'text': question,
+            'approved': False  # Default not approved
+        })
+        
+        # Check if this question was previously approved/rejected
+        if session_id in _synth_approved and question_id in _synth_approved[session_id]:
+            # Keep the approved status but update the text if needed
+            _synth_approved[session_id][question_id]['text'] = question
+        else:
+            # Initialize in our approval tracking
+            if session_id not in _synth_approved:
+                _synth_approved[session_id] = {}
+            _synth_approved[session_id][question_id] = {
+                'text': question,
+                'approved': False
+            }
+    
+    _synth_cache[session_id] = {'questions': approved_ids, 'summary': formatted_summary}
+    return formatted_summary
+
+# --- Synthesized Questions Approval Functions ---
+def approve_synthesized_question(session_id, question_id):
+    """
+    Mark a synthesized question as approved for showing to audience
+    """
+    if session_id in _synth_approved and question_id in _synth_approved[session_id]:
+        _synth_approved[session_id][question_id]['approved'] = True
+        return True
+    return False
+
+def reject_synthesized_question(session_id, question_id):
+    """
+    Mark a synthesized question as rejected (will not show to audience)
+    """
+    if session_id in _synth_approved and question_id in _synth_approved[session_id]:
+        _synth_approved[session_id][question_id]['approved'] = False
+        return True
+    return False
+
+def edit_synthesized_question(session_id, question_id, new_text):
+    """
+    Edit the text of a synthesized question
+    """
+    if session_id in _synth_approved and question_id in _synth_approved[session_id]:
+        _synth_approved[session_id][question_id]['text'] = new_text
+        return True
+    return False
+
+def get_approved_synthesized_questions(session_id):
+    """
+    Get only the approved synthesized questions for a session
+    """
+    if session_id not in _synth_approved:
+        return []
+    
+    approved_questions = []
+    for question_id, question_data in _synth_approved[session_id].items():
+        if question_data['approved']:
+            approved_questions.append({
+                'id': question_id,
+                'text': question_data['text'],
+                'approved': True
+            })
+    
+    return approved_questions
 
 # --- Background Summarization Utility ---
 def background_summarization(all_questions):

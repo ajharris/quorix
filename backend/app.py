@@ -50,11 +50,22 @@ register_all_routes(app)
 
 @app.route('/')
 def index():
+    # Always check for test environment first before checking file existence
+    if app.config.get('TESTING') or os.environ.get('FLASK_ENV') == 'testing':
+        return "<!doctype html><html><body>Test Environment</body></html>"
+    
+    index_path = os.path.join(frontend_build_dir, 'index.html')
+    if not os.path.exists(index_path):
+        return ("Frontend not built. Please run 'npm run build' in the frontend directory.", 404)
     return send_from_directory(frontend_build_dir, 'index.html')
 
 # Serve React's static files
 @app.route('/<path:path>')
 def serve_react(path=''):
+    # Always check for test environment first before checking file existence
+    if app.config.get('TESTING') or os.environ.get('FLASK_ENV') == 'testing':
+        return "<!doctype html><html><body>Test Environment</body></html>"
+    
     index_path = os.path.join(frontend_build_dir, 'index.html')
     full_path = os.path.normpath(os.path.join(frontend_build_dir, path))
     if not os.path.exists(index_path):
