@@ -11,6 +11,7 @@ import SpeakerEmbedView from './pages/SpeakerEmbedView';
 import AdView from './pages/AdView';
 import SpeakerDashboard from './pages/SpeakerDashboard';
 import OrganizerDashboard from './pages/OrganizerDashboard';
+import AudienceView from './pages/AudienceView';
 import RequireAuth from './components/RequireAuth';
 
 function App({ initialUser, initialSession }) {
@@ -99,6 +100,7 @@ function App({ initialUser, initialSession }) {
         <Route path="/moderator/:sessionId" element={<ModeratorDashboardWrapper user={{...user, role: effectiveRole}} />} />
         <Route path="/speaker/:sessionId" element={<SpeakerViewWrapper user={user} onLogin={handleLogin} onLogout={handleLogout} />} />
         <Route path="/speaker/embed/:eventId" element={<SpeakerEmbedViewWrapper />} />
+        <Route path="/audience/:sessionId" element={<AudienceViewWrapper user={user} onLogin={handleLogin} onLogout={handleLogout} />} />
         <Route path="/" element={
           <div>
             {/* Only show organizer dashboard if user is organizer */}
@@ -151,6 +153,12 @@ function SpeakerViewWrapper(props) {
 function SpeakerEmbedViewWrapper() {
   const { eventId } = require('react-router-dom').useParams();
   return <SpeakerEmbedView eventId={eventId} />;
+}
+
+// Wrapper to extract sessionId from params for AudienceView
+function AudienceViewWrapper(props) {
+  const { sessionId } = require('react-router-dom').useParams();
+  return <AudienceView sessionId={sessionId} user={props.user} onLogin={props.onLogin} onLogout={props.onLogout} />;
 }
 
 export default App;

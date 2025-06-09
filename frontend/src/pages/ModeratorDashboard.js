@@ -238,18 +238,18 @@ function ModeratorDashboard({ sessionId, user }) {
   // --- Handlers for approve/edit/reject synthesized questions ---
   const handleApproveSynth = async (id) => {
     try {
-      const res = await fetch(`/api/mod/questions/synthesized/${id}/approve`, { method: 'POST' });
+      const res = await fetch(`/api/mod/questions/synthesized/${sessionId}/approve/${id}`, { method: 'POST' });
       if (!res.ok) throw new Error('api');
-      setSynthQuestions(qs => qs.filter(q => q.id !== id));
+      setSynthQuestions(qs => qs.map(q => q.id === id ? { ...q, approved: true } : q));
     } catch {
       setSynthError('Failed to approve synthesized question.');
     }
   };
   const handleRejectSynth = async (id) => {
     try {
-      const res = await fetch(`/api/mod/questions/synthesized/${id}/reject`, { method: 'POST' });
+      const res = await fetch(`/api/mod/questions/synthesized/${sessionId}/reject/${id}`, { method: 'POST' });
       if (!res.ok) throw new Error('api');
-      setSynthQuestions(qs => qs.filter(q => q.id !== id));
+      setSynthQuestions(qs => qs.map(q => q.id === id ? { ...q, approved: false } : q));
     } catch {
       setSynthError('Failed to reject synthesized question.');
     }
@@ -260,7 +260,7 @@ function ModeratorDashboard({ sessionId, user }) {
   };
   const handleSaveSynthEdit = async (id) => {
     try {
-      const res = await fetch(`/api/mod/questions/synthesized/${id}/edit`, {
+      const res = await fetch(`/api/mod/questions/synthesized/${sessionId}/edit/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: editingSynthText })
@@ -375,6 +375,16 @@ function ModeratorDashboard({ sessionId, user }) {
         ) : eventMeta ? (
           <div>
             <h4>{eventMeta.title}</h4>
+            <div className="mb-2">
+              <a 
+                href={`/audience/${sessionId}`}
+                className="btn btn-outline-info btn-sm"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View Audience Display
+              </a>
+            </div>
             <div><strong>Time:</strong> {eventMeta.start_time ? new Date(eventMeta.start_time).toLocaleString() : ''}</div>
             <div><strong>Description:</strong> {eventMeta.description}</div>
           </div>
@@ -443,7 +453,7 @@ function ModeratorDashboard({ sessionId, user }) {
         ) : (
           <ul className="list-group mb-3">
             {synthQuestions.map(q => (
-              <li key={q.id} className="list-group-item d-flex justify-content-between align-items-center">
+              <li key={q.id} className={`list-group-item d-flex justify-content-between align-items-center ${q.approved ? 'bg-light border-success' : ''}`}>
                 {editingSynthId === q.id ? (
                   <>
                     <input
@@ -458,11 +468,19 @@ function ModeratorDashboard({ sessionId, user }) {
                   </>
                 ) : (
                   <>
-                    <span>{q.text}</span>
+                    <div style={{ flex: 1 }}>
+                      {q.approved && (
+                        <span className="badge bg-success me-2">Approved for audience</span>
+                      )}
+                      <span>{q.text}</span>
+                    </div>
                     <div>
-                      <button className="btn btn-success btn-sm me-2" onClick={() => handleApproveSynth(q.id)}>Approve</button>
+                      {q.approved ? (
+                        <button className="btn btn-outline-danger btn-sm me-2" onClick={() => handleRejectSynth(q.id)}>Remove from audience</button>
+                      ) : (
+                        <button className="btn btn-success btn-sm me-2" onClick={() => handleApproveSynth(q.id)}>Approve for audience</button>
+                      )}
                       <button className="btn btn-secondary btn-sm me-2" onClick={() => handleEditSynth(q.id, q.text)}>Edit</button>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleRejectSynth(q.id)}>Reject</button>
                     </div>
                   </>
                 )}
